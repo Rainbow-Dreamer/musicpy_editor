@@ -174,23 +174,23 @@ if draw_piano_keys:
                                                  batch=batch,
                                                  group=piano_bg)
     for i in range(white_keys_number):
-        current_piano_key = shapes.Rectangle(x=white_key_start_x +
-                                             white_key_interval * i,
-                                             y=white_key_y,
-                                             width=white_key_width,
-                                             height=white_key_height,
-                                             color=white_key_color,
-                                             batch=batch,
-                                             group=piano_key)
+        current_piano_key = pyglet.shapes.Rectangle(x=white_key_start_x +
+                                                    white_key_interval * i,
+                                                    y=white_key_y,
+                                                    width=white_key_width,
+                                                    height=white_key_height,
+                                                    color=white_key_color,
+                                                    batch=batch,
+                                                    group=piano_key)
         piano_keys.append(current_piano_key)
         initial_colors.append((current_piano_key.x, white_key_color))
-    first_black_key = shapes.Rectangle(x=black_key_first_x,
-                                       y=black_key_y,
-                                       width=black_key_width,
-                                       height=black_key_height,
-                                       color=black_key_color,
-                                       batch=batch,
-                                       group=piano_key)
+    first_black_key = pyglet.shapes.Rectangle(x=black_key_first_x,
+                                              y=black_key_y,
+                                              width=black_key_width,
+                                              height=black_key_height,
+                                              color=black_key_color,
+                                              batch=batch,
+                                              group=piano_key)
     piano_keys.append(first_black_key)
     initial_colors.append((first_black_key.x, black_key_color))
     current_start = black_key_start_x
@@ -198,13 +198,13 @@ if draw_piano_keys:
         for k in black_keys_set:
             current_start += k
             piano_keys.append(
-                shapes.Rectangle(x=current_start,
-                                 y=black_key_y,
-                                 width=black_key_width,
-                                 height=black_key_height,
-                                 color=black_key_color,
-                                 batch=batch,
-                                 group=piano_key))
+                pyglet.shapes.Rectangle(x=current_start,
+                                        y=black_key_y,
+                                        width=black_key_width,
+                                        height=black_key_height,
+                                        color=black_key_color,
+                                        batch=batch,
+                                        group=piano_key))
             initial_colors.append((current_start, black_key_color))
         current_start += black_keys_set_interval
     piano_keys.sort(key=lambda s: s.x)
@@ -309,7 +309,7 @@ def mode_show(dt):
                     if currentime >= next_bar_drop[0]:
                         current_note = next_bar_drop[1]
                         places = note_place[current_note.degree - 21]
-                        current_bar = shapes.Rectangle(
+                        current_bar = pyglet.shapes.Rectangle(
                             x=places[0] + bar_offset_x,
                             y=screen_height,
                             width=bar_width,
@@ -350,7 +350,7 @@ def mode_show(dt):
                                     del show_music_analysis_list[0]
                         if note_mode == 'bars':
                             places = note_place[current_note.degree - 21]
-                            current_bar = shapes.Rectangle(
+                            current_bar = pyglet.shapes.Rectangle(
                                 x=places[0] + bar_offset_x,
                                 y=bar_y,
                                 width=bar_width,
