@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+browse memory.txt
+temp.mid
 
 # C extensions
 *.so
