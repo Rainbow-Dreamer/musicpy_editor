@@ -114,43 +114,6 @@ if show_music_analysis:
         multiline=True,
         width=music_analysis_width)
 
-
-def get_off_sort(a):
-    each_chord = a.split('/')
-    for i in range(len(each_chord)):
-        current = each_chord[i]
-        if 'sort as' in current:
-            current = current[:current.index('sort as') - 1]
-            if current[0] == '[':
-                current += ']'
-            each_chord[i] = current
-    return '/'.join(each_chord)
-
-
-def load(dic, path, file_format, volume):
-    wavedict = {
-        i: pygame.mixer.Sound(f'{path}/{dic[i]}.{file_format}')
-        for i in dic
-    }
-    if volume != None:
-        [wavedict[x].set_volume(volume) for x in wavedict]
-    return wavedict
-
-
-def configkey(q):
-    return pressed(f'{config_key} + {q}')
-
-
-def configshow(content):
-    label.text = str(content)
-
-
-def switchs(q, name):
-    if configkey(q):
-        globals()[name] = not globals()[name]
-        configshow(f'{name} changes to {globals()[name]}')
-
-
 mouse_pos = 0, 0
 first_time = True
 message_label = False
@@ -213,6 +176,78 @@ if draw_piano_keys:
     note_place = [(each.x, each.y) for each in piano_keys]
     bar_offset_x = 0
 
+currentchord = chord([])
+playnotes = []
+paused = False
+pause_start = 0
+if note_mode == 'bars drop':
+    bars_drop_time = []
+    distances = screen_height - piano_height
+    bar_steps = (distances / bars_drop_interval) / adjust_ratio
+else:
+    bars_drop_interval = 0
+
+melody_notes = []
+
+if show_music_analysis:
+    with open(music_analysis_file, encoding='utf-8-sig') as f:
+        data = f.read()
+        lines = [i for i in data.split('\n\n') if i]
+        music_analysis_list = []
+        current_key = None
+        bar_counter = 0
+        for each in lines:
+            if each:
+                if each[:3] != 'key':
+                    current = each.split('\n')
+                    current_bar = current[0]
+                    if current_bar[0] == '+':
+                        bar_counter += eval(current_bar[1:])
+                    else:
+                        bar_counter = eval(current_bar) - 1
+                    current_chords = '\n'.join(current[1:])
+                    if current_key:
+                        current_chords = f'{key_header}{current_key}\n' + current_chords
+                    music_analysis_list.append([bar_counter, current_chords])
+                else:
+                    current_key = each.split('key: ')[1]
+
+
+def get_off_sort(a):
+    each_chord = a.split('/')
+    for i in range(len(each_chord)):
+        current = each_chord[i]
+        if 'sort as' in current:
+            current = current[:current.index('sort as') - 1]
+            if current[0] == '[':
+                current += ']'
+            each_chord[i] = current
+    return '/'.join(each_chord)
+
+
+def load(dic, path, file_format, volume):
+    wavedict = {
+        i: pygame.mixer.Sound(f'{path}/{dic[i]}.{file_format}')
+        for i in dic
+    }
+    if volume != None:
+        [wavedict[x].set_volume(volume) for x in wavedict]
+    return wavedict
+
+
+def configkey(q):
+    return pressed(f'{config_key} + {q}')
+
+
+def configshow(content):
+    label.text = str(content)
+
+
+def switchs(q, name):
+    if configkey(q):
+        globals()[name] = not globals()[name]
+        configshow(f'{name} changes to {globals()[name]}')
+
 
 @window.event
 def on_draw():
@@ -270,10 +305,6 @@ def whole_reset():
     pyglet.clock.unschedule(func)
 
 
-currentchord = chord([])
-playnotes = []
-
-
 def reset_click_mode():
     global click_mode
     click_mode = None
@@ -282,10 +313,6 @@ def reset_click_mode():
 def not_first():
     global first_time
     first_time = not first_time
-
-
-paused = False
-pause_start = 0
 
 
 def mode_show(dt):
@@ -485,14 +512,6 @@ def mode_show(dt):
             sys.exit(0)
 
 
-if note_mode == 'bars drop':
-    bars_drop_time = []
-    distances = screen_height - piano_height
-    bar_steps = (distances / bars_drop_interval) / adjust_ratio
-else:
-    bars_drop_interval = 0
-
-
 def midi_file_play(dt):
     pygame.mixer.music.play()
 
@@ -558,32 +577,6 @@ def initialize(musicsheet, unit_time, start_time):
                 start += interval
             pyglet.clock.schedule_once(midi_file_play, bars_drop_interval)
     return playls
-
-
-melody_notes = []
-
-if show_music_analysis:
-    with open(music_analysis_file, encoding='utf-8-sig') as f:
-        data = f.read()
-        lines = [i for i in data.split('\n\n') if i]
-        music_analysis_list = []
-        current_key = None
-        bar_counter = 0
-        for each in lines:
-            if each:
-                if each[:3] != 'key':
-                    current = each.split('\n')
-                    current_bar = current[0]
-                    if current_bar[0] == '+':
-                        bar_counter += eval(current_bar[1:])
-                    else:
-                        bar_counter = eval(current_bar) - 1
-                    current_chords = '\n'.join(current[1:])
-                    if current_key:
-                        current_chords = f'{key_header}{current_key}\n' + current_chords
-                    music_analysis_list.append([bar_counter, current_chords])
-                else:
-                    current_key = each.split('key: ')[1]
 
 
 def init_show():
