@@ -456,10 +456,11 @@ def mode_show(dt):
                             str(chordtype))
 
         if keyboard.is_pressed(pause_key):
-            paused = True
-            pause_start = time.time()
-            message_label = True
-            label3.text = f'paused, press {unpause_key} to unpause'
+            if pygame.mixer.get_busy() or pygame.mixer.music.get_busy():
+                paused = True
+                pause_start = time.time()
+                message_label = True
+                label3.text = f'paused, press {unpause_key} to unpause'
         if note_mode == 'bars':
             i = 0
             while i < len(plays):
