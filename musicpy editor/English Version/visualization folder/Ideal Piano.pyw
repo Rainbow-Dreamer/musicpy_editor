@@ -195,8 +195,6 @@ if note_mode == 'bars drop':
 else:
     bars_drop_interval = 0
 
-melody_notes = []
-
 if show_music_analysis:
     with open(music_analysis_file, encoding='utf-8-sig') as f:
         data = f.read()
@@ -296,7 +294,6 @@ def whole_reset():
     global wholenotes
     global musicsheet
     global unit_time
-    global melody_notes
     global first_time
     read_result = None
     set_bpm = None
@@ -308,7 +305,6 @@ def whole_reset():
     wholenotes.clear()
     musicsheet = None
     unit_time = None
-    melody_notes.clear()
     first_time = True
     pyglet.clock.unschedule(func)
 
@@ -601,7 +597,6 @@ def init_show():
     global wholenotes
     global musicsheet
     global unit_time
-    global melody_notes
     global path
     global bpm2
     setup()
