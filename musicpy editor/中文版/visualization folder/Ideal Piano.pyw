@@ -564,8 +564,7 @@ def initialize(musicsheet, unit_time, start_time):
                     bars_drop_time.append(
                         (currentstart - bars_drop_interval, currentnote))
                 start += interval
-        except Exception as e:
-            print(str(e))
+        except:
             pygame.mixer.music.load(path)
             play_midi_file = True
             playls.clear()
