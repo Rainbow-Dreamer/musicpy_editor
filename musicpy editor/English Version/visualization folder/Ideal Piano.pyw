@@ -345,7 +345,7 @@ def mode_show(dt):
                             y=screen_height,
                             width=bar_width,
                             height=bar_unit * current_note.duration /
-                            (bpm2 / 130),
+                            (bpm / 130),
                             color=current_note.own_color
                             if use_track_colors else
                             (bar_color if color_mode == 'normal' else
@@ -388,7 +388,7 @@ def mode_show(dt):
                                 y=bar_y,
                                 width=bar_width,
                                 height=bar_unit * current_note.duration /
-                                (bpm2 / 130),
+                                (bpm / 130),
                                 color=current_note.own_color
                                 if use_track_colors else
                                 (bar_color if color_mode == 'normal' else
@@ -597,18 +597,18 @@ def init_show():
     global musicsheet
     global unit_time
     global path
-    global bpm2
+    global bpm
     setup()
     path = file_path
     if read_result != 'error':
-        bpm2, musicsheet, start_time = read_result
+        bpm, musicsheet, start_time = read_result
         musicsheet, new_start_time = musicsheet.pitch_filter(*pitch_range)
         start_time += new_start_time
         sheetlen = len(musicsheet)
     sheetlen = len(musicsheet)
     pygame.mixer.set_num_channels(sheetlen)
     wholenotes = musicsheet.notes
-    unit_time = 4 * 60 / bpm2
+    unit_time = 4 * 60 / bpm
 
     # every object in playls has a situation flag at the index of 3,
     # 0 means has not been played yet, 1 means it has started playing,
