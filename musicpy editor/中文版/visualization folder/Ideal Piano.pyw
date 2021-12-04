@@ -600,6 +600,7 @@ def init_show():
     global unit_time
     global path
     global bpm
+    global paused
     setup()
     path = file_path
     if read_result != 'error':
@@ -620,6 +621,7 @@ def init_show():
     startplay = time.time()
     lastshow = None
     finished = False
+    paused = False
     func = mode_show
 
 
