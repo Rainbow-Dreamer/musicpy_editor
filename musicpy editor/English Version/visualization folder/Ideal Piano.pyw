@@ -453,6 +453,7 @@ def mode_show(dt):
 
         if keyboard.is_pressed(pause_key):
             if pygame.mixer.get_busy() or pygame.mixer.music.get_busy():
+                pygame.mixer.music.pause()
                 paused = True
                 pause_start = time.time()
                 message_label = True
@@ -486,6 +487,7 @@ def mode_show(dt):
 
     else:
         if keyboard.is_pressed(unpause_key):
+            pygame.mixer.music.unpause()
             paused = False
             message_label = False
             pause_stop = time.time()
