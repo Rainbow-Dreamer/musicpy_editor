@@ -452,7 +452,7 @@ def mode_show(dt):
                             str(chordtype))
 
         if keyboard.is_pressed(pause_key):
-            if pygame.mixer.get_busy() or pygame.mixer.music.get_busy():
+            if pygame.mixer.music.get_busy():
                 pygame.mixer.music.pause()
                 paused = True
                 pause_start = time.time()
