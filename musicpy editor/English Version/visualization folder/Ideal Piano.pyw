@@ -100,19 +100,6 @@ label3 = pyglet.text.Label('',
                            color=message_color,
                            anchor_x=label_anchor_x,
                            anchor_y=label_anchor_y)
-if show_music_analysis:
-    music_analysis_label = pyglet.text.Label(
-        '',
-        font_name=fonts,
-        font_size=music_analysis_fonts_size,
-        bold=bold,
-        x=music_analysis_place[0],
-        y=music_analysis_place[1],
-        color=message_color,
-        anchor_x=label_anchor_x,
-        anchor_y=label_anchor_y,
-        multiline=True,
-        width=music_analysis_width)
 
 mouse_pos = 0, 0
 first_time = True
@@ -194,29 +181,6 @@ if note_mode == 'bars drop':
     bar_steps = (distances / bars_drop_interval) / adjust_ratio
 else:
     bars_drop_interval = 0
-
-if show_music_analysis:
-    with open(music_analysis_file, encoding='utf-8-sig') as f:
-        data = f.read()
-        lines = [i for i in data.split('\n\n') if i]
-        music_analysis_list = []
-        current_key = None
-        bar_counter = 0
-        for each in lines:
-            if each:
-                if each[:3] != 'key':
-                    current = each.split('\n')
-                    current_bar = current[0]
-                    if current_bar[0] == '+':
-                        bar_counter += eval(current_bar[1:])
-                    else:
-                        bar_counter = eval(current_bar) - 1
-                    current_chords = '\n'.join(current[1:])
-                    if current_key:
-                        current_chords = f'{key_header}{current_key}\n' + current_chords
-                    music_analysis_list.append([bar_counter, current_chords])
-                else:
-                    current_key = each.split('key: ')[1]
 
 
 def get_off_sort(a):
@@ -328,7 +292,6 @@ def mode_show(dt):
     global pause_start
     global message_label
     global playnotes
-    global show_music_analysis_list
     global sheetlen
     if not paused:
         currentime = time.time() - startplay
@@ -373,14 +336,6 @@ def mode_show(dt):
                         if not play_midi_file:
                             current_sound.play()
                         nownote[3] = 1
-                        if show_music_analysis:
-                            if show_music_analysis_list:
-                                current_music_analysis = show_music_analysis_list[
-                                    0]
-                                if k == current_music_analysis[0]:
-                                    music_analysis_label.text = current_music_analysis[
-                                        1]
-                                    del show_music_analysis_list[0]
                         if note_mode == 'bars':
                             places = note_place[current_note.degree - 21]
                             current_bar = pyglet.shapes.BorderedRectangle(
@@ -497,9 +452,6 @@ def mode_show(dt):
         label2.text = ''
         for each in plays:
             each.batch = None
-        if show_music_analysis:
-            music_analysis_label.text = ''
-            show_music_analysis_list = copy(default_show_music_analysis_list)
         label.text = f'music playing finished,\npress {repeat_key} to listen again,\nor press {exit_key} to exit'
         if keyboard.is_pressed(repeat_key):
             if show_notes:
