@@ -1,4 +1,24 @@
 import random
+import os
+import sys
+import pygame
+import pygame.midi
+import time
+import pyglet
+import mido
+import midiutil
+import tkinter as tk
+from tkinter import ttk
+from tkinter import filedialog
+import py
+from pydub import AudioSegment
+import browse
+import musicpy as mp
+from ast import literal_eval
+import piano_config
+from change_settings import config_window
+from copy import deepcopy as copy
+import importlib
 
 if sys.platform == 'darwin':
     current_test = tk.Tk()
@@ -10,10 +30,6 @@ if piano_config.language == 'English':
 elif piano_config.language == 'Chinese':
     from languages.cn import language_patch
     mp.detect = language_patch.detect
-
-if (piano_config.play_as_midi
-        and piano_config.use_soundfont) or piano_config.play_use_soundfont:
-    import sf2_loader as rs
 
 key = pyglet.window.key
 
@@ -94,10 +110,8 @@ class piano_window(pyglet.window.Window):
         self.init_parameters()
         self.init_key_map()
         self.init_keys()
-        self.init_sf2()
         self.init_screen()
         self.init_layers()
-        self.init_screen_buttons()
         self.init_piano_keys()
         self.init_note_mode()
         self.init_screen_labels()
@@ -107,7 +121,7 @@ class piano_window(pyglet.window.Window):
         super(piano_window, self).__init__(*piano_config.screen_size,
                                            caption='Ideal Piano',
                                            resizable=True)
-        self.icon = pyglet.image.load('resources/piano.ico')
+        self.icon = pyglet.image.load('visualization/resources/piano.ico')
         self.set_icon(self.icon)
         self.keyboard_handler = key.KeyStateHandler()
         self.push_handlers(self.keyboard_handler)
@@ -231,21 +245,6 @@ class piano_window(pyglet.window.Window):
         else:
             self.bar_steps = piano_config.bar_steps
             self.bars_drop_interval = 0
-
-    def init_screen_buttons(self):
-        if piano_config.language == 'Chinese':
-            piano_config.go_back_image = 'packages/languages/cn/go_back.png'
-            piano_config.self_play_image = 'packages/languages/cn/play.png'
-            piano_config.self_midi_image = 'packages/languages/cn/midi_keyboard.png'
-            piano_config.play_midi_image = 'packages/languages/cn/play_midi.png'
-        self.go_back_button = ideal_piano_button(piano_config.go_back_image,
-                                                 *piano_config.go_back_place)
-        self.self_play_button = ideal_piano_button(
-            piano_config.self_play_image, *piano_config.self_play_place)
-        self.self_midi_button = ideal_piano_button(
-            piano_config.self_midi_image, *piano_config.self_midi_place)
-        self.play_midi_button = ideal_piano_button(
-            piano_config.play_midi_image, *piano_config.play_midi_place)
 
     def init_screen_labels(self):
         self.label = pyglet.text.Label('',
@@ -413,68 +412,21 @@ class piano_window(pyglet.window.Window):
         self.func = None
         self.click_mode = None
         self.bar_offset_x = piano_config.bar_offset_x
-        self.open_browse_window = False
 
-    def init_language(self):
-        global language_patch
-        if piano_config.language == 'English':
-            from languages.en import language_patch
-            importlib.reload(mp)
-        elif piano_config.language == 'Chinese':
-            from languages.cn import language_patch
-            mp.detect = language_patch.detect
-        current_piano_engine.current_midi_device = language_patch.ideal_piano_language_dict[
-            'current_midi_device']
+    def init_midi_file(self):
+        init_result = current_piano_engine.init_midi_show()
+        if init_result == 'back':
+            self.mode_num = 4
+        else:
+            self.func = current_piano_engine.mode_midi_show
+            self.not_first()
+            pyglet.clock.schedule_interval(self.func, 1 / piano_config.fps)
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse_pos = x, y
 
     def on_mouse_press(self, x, y, button, modifiers):
-        if self.go_back_button.inside(
-                self.mouse_pos
-        ) & button & self.mouse_left and not self.first_time:
-            pygame.mixer.stop()
-            pygame.mixer.music.stop()
-            if self.mode_num in [0, 1, 2]:
-                pyglet.clock.unschedule(self.func)
-                if current_piano_engine.plays:
-                    current_piano_engine.plays.clear()
-                if self.mode_num == 0:
-                    if current_piano_engine.still_hold_pc:
-                        current_piano_engine.still_hold_pc.clear()
-                elif self.mode_num == 1:
-                    piano_config.delay_only_read_current = True
-                elif self.mode_num == 2:
-                    pyglet.clock.unschedule(
-                        current_piano_engine.midi_file_play)
-                    if piano_config.show_music_analysis:
-                        self.music_analysis_label.text = ''
-                    if piano_config.play_as_midi:
-                        if piano_config.use_soundfont and not piano_config.render_as_audio:
-                            if self.current_sf2_player.playing:
-                                self.current_sf2_player.stop()
-                    if current_piano_engine.playls:
-                        current_piano_engine.playls.clear()
-            self.is_click = True
-            self.click_mode = None
-            if piano_config.note_mode == 'bars' or piano_config.note_mode == 'bars drop':
-                current_piano_engine.still_hold.clear()
-                if piano_config.note_mode == 'bars drop':
-                    current_piano_engine.bars_drop_time.clear()
-            if piano_config.draw_piano_keys:
-                for k in range(len(self.piano_keys)):
-                    self.piano_keys[k].color = self.initial_colors[k]
-            self.label3.text = ''
-
-        if self.self_play_button.inside(
-                self.mouse_pos) & button & self.mouse_left and self.first_time:
-            self.click_mode = 0
-        if self.self_midi_button.inside(
-                self.mouse_pos) & button & self.mouse_left and self.first_time:
-            self.click_mode = 1
-        if self.play_midi_button.inside(
-                self.mouse_pos) & button & self.mouse_left and self.first_time:
-            self.click_mode = 2
+        pass
 
     def on_draw(self):
         self.clear()
@@ -483,101 +435,8 @@ class piano_window(pyglet.window.Window):
             self.image_show.draw()
         if self.batch:
             self.batch.draw()
-        self.go_back_button.draw()
         self.label_midi_device.draw()
-        if self.first_time:
-            self._draw_window_first_time()
-        else:
-            self._draw_window()
-
-    def _draw_window_first_time(self):
-        self.self_play_button.draw()
-        self.self_midi_button.draw()
-        self.play_midi_button.draw()
-        if self.mode_num is None:
-            self._main_window_read_click_mode()
-        else:
-            self._main_window_enter_mode()
-
-    def _main_window_read_click_mode(self):
-        if self.keyboard_handler[key.LSHIFT]:
-            self.label_midi_device.text = current_piano_engine.current_midi_device
-        if self.keyboard_handler[key.LCTRL]:
-            self.label_midi_device.text = ''
-        if self.keyboard_handler[self.config_key] and self.keyboard_handler[
-                key.S]:
-            self.open_settings()
-        if self.keyboard_handler[self.config_key] and self.keyboard_handler[
-                key.R]:
-            self.label.text = language_patch.ideal_piano_language_dict[
-                'reload']
-            self.label.draw()
-            self.flip()
-            self.reload_settings()
-        if self.click_mode == 0:
-            self.mode_num = 0
-            self.label.text = language_patch.ideal_piano_language_dict['load']
-            self.label.draw()
-        elif self.click_mode == 1:
-            self.mode_num = 1
-            self.label.text = language_patch.ideal_piano_language_dict['load']
-            self.label.draw()
-        elif self.click_mode == 2:
-            self.mode_num = 2
-
-    def _main_window_enter_mode(self):
-        if self.mode_num == 0:
-            current_piano_engine.init_self_pc()
-            self.label.text = language_patch.ideal_piano_language_dict[
-                'finished']
-            self.label.draw()
-            self.func = current_piano_engine.mode_self_pc
-            self.not_first()
-            pyglet.clock.schedule_interval(self.func, 1 / piano_config.fps)
-        elif self.mode_num == 1:
-            try:
-                current_piano_engine.init_self_midi()
-                if not current_piano_engine.device:
-                    self.label.text = language_patch.ideal_piano_language_dict[
-                        'no MIDI input']
-                    self.mode_num = 3
-                    self.reset_click_mode()
-                    self.label.draw()
-                else:
-                    self.label.text = language_patch.ideal_piano_language_dict[
-                        'finished']
-                    self.label.draw()
-                    self.func = current_piano_engine.mode_self_midi
-                    self.not_first()
-                    pyglet.clock.schedule_interval(self.func,
-                                                   1 / piano_config.fps)
-            except Exception as e:
-                current_piano_engine.has_load(False)
-                pygame.midi.quit()
-                current_piano_engine.current_midi_device += f'\n{language_patch.ideal_piano_language_dict["error message"]}: {e}'
-                self.label.text = language_patch.ideal_piano_language_dict[
-                    'no MIDI input']
-                self.mode_num = 3
-                self.reset_click_mode()
-                self.label.draw()
-        elif self.mode_num == 2:
-            if not self.open_browse_window:
-                init_result = current_piano_engine.init_midi_show()
-                if init_result == 'back':
-                    self.mode_num = 4
-                else:
-                    self.func = current_piano_engine.mode_midi_show
-                    self.not_first()
-                    pyglet.clock.schedule_interval(self.func,
-                                                   1 / piano_config.fps)
-        elif self.mode_num == 3:
-            time.sleep(1)
-            self.label.text = ''
-            self.mode_num = None
-        elif self.mode_num == 4:
-            self.label.text = ''
-            self.mode_num = None
-            self.reset_click_mode()
+        self._draw_window()
 
     def _draw_window(self):
         if self.is_click:
@@ -602,7 +461,6 @@ class piano_window(pyglet.window.Window):
             self.image_show.draw()
         if self.batch:
             self.batch.draw()
-        self.go_back_button.draw()
         self.label_midi_device.draw()
         self.label2.draw()
         if self.message_label:
@@ -627,16 +485,19 @@ class piano_window(pyglet.window.Window):
     def reload_settings(self):
         importlib.reload(piano_config)
         self.init_parameters()
-        self.init_language()
         self.init_keys()
         self.init_sf2(1)
         self.init_screen()
         self.init_layers()
-        self.init_screen_buttons()
         self.init_piano_keys()
         self.init_note_mode()
         self.init_screen_labels()
         self.init_music_analysis()
+
+    def on_close(self):
+        pygame.mixer.music.stop()
+        pyglet.clock.unschedule(self.func)
+        self.close()
 
 
 class piano_engine:
@@ -832,9 +693,7 @@ class piano_engine:
         self.soft_pedal_volume_ratio = 1
 
     def init_midi_show(self):
-        current_piano_window.open_browse_window = True
-        current_setup = browse.setup(language_patch.browse_language_dict)
-        current_piano_window.open_browse_window = False
+        current_setup = browse.setup()
         self.path = current_setup.file_path
         self.action = current_setup.action
         read_result = current_setup.read_result
@@ -1683,7 +1542,11 @@ class piano_engine:
             self.finished = False
 
 
-current_piano_engine = piano_engine()
-current_piano_window = piano_window()
-pyglet.clock.schedule_interval(update, 1 / piano_config.fps)
-pyglet.app.run()
+def start():
+    global current_piano_engine
+    global current_piano_window
+    current_piano_engine = piano_engine()
+    current_piano_window = piano_window()
+    current_piano_window.init_midi_file()
+    pyglet.clock.schedule_interval(update, 1 / piano_config.fps)
+    pyglet.app.run()

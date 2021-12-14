@@ -1,10 +1,10 @@
 ﻿# basic screen settings
 
 screen_size = (1300, 650)
-background_image = 'resources/white.png'
+background_image = 'visualization/resources/white.png'
 background_size = None
 width_or_height_first = True
-piano_image = 'resources/piano.png'
+piano_image = 'visualization/resources/piano.png'
 piano_size = None
 message_color = (0, 0, 0, 255)
 fonts_size = 23
@@ -266,7 +266,7 @@ black_keys_set_num = 7
 piano_key_border = 0
 piano_key_border_color = (100, 100, 100)
 
-piano_background_image = 'resources/piano_background.png'
+piano_background_image = 'visualization/resources/piano_background.png'
 
 show_music_analysis = False
 music_analysis_file = None

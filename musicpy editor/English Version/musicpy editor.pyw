@@ -11,8 +11,11 @@ import re
 from yapf.yapflib.yapf_api import FormatCode
 from io import BytesIO
 import musicpy
-sys.path.append('visualization folder')
-from tools.change_settings import config_window
+from visualization.tools.change_settings import config_window
+
+sys.path.append('visualization/packages')
+sys.path.append('visualization/tools')
+import visualization.Ideal_Piano
 
 musicpy_vars = dir(musicpy)
 from musicpy import *
@@ -1253,10 +1256,7 @@ class Root(Tk):
             self.outputs.delete('1.0', END)
             self.outputs.insert(END, 'The codes selected cannot be played')
             return
-        os.chdir('visualization folder')
-        with open('Ideal Piano start program.pyw', encoding='utf-8-sig') as f:
-            exec(f.read(), globals(), globals())
-        os.chdir('../')
+        visualization.Ideal_Piano.start()
 
     def read_midi_file(self):
         filename = filedialog.askopenfilename(initialdir=self.last_place,

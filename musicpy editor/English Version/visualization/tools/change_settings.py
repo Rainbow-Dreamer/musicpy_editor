@@ -254,18 +254,10 @@ class config_window(tk.Tk):
                 changed = True
         if changed:
             self.show_saved()
-    
+
     def quit_window(self):
         self.parent.visualize_config_box_open = False
         self.destroy()
 
 
-if __name__ == '__main__':
-    if sys.platform == 'darwin':
-        config_path = '../../../../Ideal Piano.app/Contents/Resources/packages/piano_config.py'
-    else:
-        config_path = '../packages/piano_config.py'
-    current_config_window = config_window()
-    current_config_window.mainloop()
-else:
-    config_path = 'visualization folder/packages/piano_config.py'
+config_path = 'visualization/packages/piano_config.py'
