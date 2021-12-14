@@ -1,4 +1,3 @@
 musicpy
 pillow
 pyglet==1.5.11
-keyboard
