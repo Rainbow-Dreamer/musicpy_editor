@@ -11,6 +11,8 @@ import re
 from yapf.yapflib.yapf_api import FormatCode
 from io import BytesIO
 import musicpy
+sys.path.append('visualization folder')
+from tools.change_settings import config_window
 
 musicpy_vars = dir(musicpy)
 from musicpy import *
@@ -397,9 +399,8 @@ class Root(Tk):
         if self.visualize_config_box_open:
             return
         self.visualize_config_box_open = True
-        os.chdir('visualization folder')
-        with open('change_settings.pyw', encoding='utf-8-sig') as f:
-            exec(f.read(), globals(), globals())
+        current_config_window = config_window(self)
+        current_config_window.mainloop()
 
     def get_current_line_column(self):
         ind = self.inputs.index(INSERT)

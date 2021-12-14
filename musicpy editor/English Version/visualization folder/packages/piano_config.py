@@ -1,9 +1,10 @@
-# basic screen settings
+﻿# basic screen settings
 
 screen_size = (1300, 650)
-background_image = 'white.png'
+background_image = 'resources/white.png'
 background_size = None
-piano_image = 'piano.png'
+width_or_height_first = True
+piano_image = 'resources/piano.png'
 piano_size = None
 message_color = (0, 0, 0, 255)
 fonts_size = 23
@@ -14,15 +15,13 @@ label_anchor_x = 'left'
 label_anchor_y = 'center'
 fonts = 'Consolas'
 bold = True
-notes_image = 'playing.png'
-notes_resize_num = 1.2
-go_back_image = 'go_back.png'
+go_back_image = 'resources/go_back.png'
 go_back_place = 50, 550
-self_play_image = 'play.png'
+self_play_image = 'resources/play.png'
 self_play_place = 50, 480
-self_midi_image = 'midi_keyboard.png'
+self_midi_image = 'resources/midi_keyboard.png'
 self_midi_place = 50, 410
-play_midi_image = 'play_midi.png'
+play_midi_image = 'resources/play_midi.png'
 play_midi_place = 50, 340
 button_resize_num = 2.3
 fps = 60
@@ -93,42 +92,16 @@ key_settings = {
     'f9': 'G#6',
     'f10': 'A6',
     'f11': 'A#6',
-    'f12': 'B6',
-    'insert': 'B0',
-    'home': 'C1',
-    'page up': 'C#1',
-    'delete': 'D1',
-    'end': 'D#1',
-    'page down': 'E1',
-    'up': 'F1',
-    'left': 'F#1',
-    'down': 'G1',
-    'right': 'G#1',
-    'num 0': 'A1',
-    'decimal': 'C4',
-    'num 1': 'C#4',
-    'num 2': 'D4',
-    'num 3': 'D#4',
-    'num 4': 'E4',
-    'num 5': 'F4',
-    'num 6': 'F#4',
-    'num 7': 'G4',
-    'num 8': 'G#4',
-    'num 9': 'A4',
-    'num /': 'A#4',
-    '*': 'B4',
-    'num -': 'C5',
-    'plus': 'A0',
-    'enter2': 'A#0'
+    'f12': 'B6'
 }
 
 midi_device_id = 1
+device_info_num = 10
 
 # operation key settings for pause, unpause, repeat and so on
 pause_key = 'space'
 repeat_key = 'ctrl'
 unpause_key = 'enter'
-exit_key = 'esc'
 pause_key_clear_notes = False
 
 # these are the init parameters of the mixer
@@ -136,13 +109,14 @@ frequency = 44100
 size = -16
 channel = 2
 buffer = 1024
-maxinum_channels = 100
+max_num_channels = 100
 global_volume = 0.6
 
 # if delay is set to True, when you are self playing, the sounds will
 # last for delay_time seconds
 delay = True
 delay_time = 3
+fadeout_ms = 100
 
 # touch interval is when the sound is still on delay, if you re-press
 # the key for the same key for that sound, the time interval between
@@ -160,7 +134,7 @@ delay_only_read_current = True
 sound_format = 'wav'
 
 # the path of the sounds folder
-sound_path = 'sounds'
+sound_path = 'resources/sounds'
 
 # when the mode is in 'show' mode, the delay time for the sounds
 show_delay_time = 1
@@ -185,7 +159,7 @@ alter_notes_show_degree = True
 config_enable = True
 
 # if you press the config key with the following keys, those keys will be able to adjust settings in realtime.
-config_key = 'alt'
+config_key = 'lctrl'
 
 # volume change keys
 volume_up = '='
@@ -243,6 +217,7 @@ note_mode = 'bars drop'
 bar_width = 14
 bar_height = 20
 bar_color = (124, 252, 0)
+sustain_bar_color = (124, 200, 0)
 bar_y = 178
 bar_offset_x = 6
 dots_offset_x = 10
@@ -291,7 +266,7 @@ black_keys_set_num = 7
 piano_key_border = 0
 piano_key_border_color = (100, 100, 100)
 
-piano_background_image = 'piano_background.png'
+piano_background_image = 'resources/piano_background.png'
 
 show_music_analysis = False
 music_analysis_file = None
@@ -308,3 +283,18 @@ tracks_colors = [(0, 255, 0), (255, 255, 0), (0, 0, 255), (0, 255, 255),
                  (255, 20, 147)]
 use_default_tracks_colors = True
 pitch_range = ('A0', 'C8')
+
+use_soundfont = False
+play_use_soundfont = False
+sf2_path = 'resources/gm.sf2'
+bank = 0
+preset = 0
+sf2_duration = 6
+sf2_decay = 1
+sf2_volume = 100
+
+soft_pedal_volume = 0.2
+
+render_as_audio = False
+
+language = 'English'
