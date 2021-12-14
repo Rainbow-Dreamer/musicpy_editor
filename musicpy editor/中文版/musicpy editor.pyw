@@ -11,6 +11,11 @@ import re
 from yapf.yapflib.yapf_api import FormatCode
 from io import BytesIO
 import musicpy
+from visualization.tools.change_settings import config_window
+
+sys.path.append('visualization/packages')
+sys.path.append('visualization/tools')
+import visualization.Ideal_Piano
 
 musicpy_vars = dir(musicpy)
 from musicpy import *
@@ -396,9 +401,8 @@ class Root(Tk):
         if self.visualize_config_box_open:
             return
         self.visualize_config_box_open = True
-        os.chdir('visualization folder')
-        with open('change_settings.pyw', encoding='utf-8-sig') as f:
-            exec(f.read(), globals(), globals())
+        current_config_window = config_window(self)
+        current_config_window.mainloop()
 
     def get_current_line_column(self):
         ind = self.inputs.index(INSERT)
@@ -1246,10 +1250,7 @@ class Root(Tk):
             self.outputs.delete('1.0', END)
             self.outputs.insert(END, '选中的语句无法播放')
             return
-        os.chdir('visualization folder')
-        with open('Ideal Piano start program.pyw', encoding='utf-8-sig') as f:
-            exec(f.read(), globals(), globals())
-        os.chdir('../')
+        visualization.Ideal_Piano.start()
 
     def read_midi_file(self):
         filename = filedialog.askopenfilename(initialdir=self.last_place,
