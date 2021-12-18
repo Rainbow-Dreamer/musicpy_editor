@@ -44,7 +44,7 @@ def change(var, new, is_str=True):
         f.write(''.join(text_ls))
 
 
-class config_window(tk.Tk):
+class config_window(tk.Toplevel):
     def __init__(self, parent):
         self.parent = parent
         with open(config_path, encoding='utf-8-sig') as f:
