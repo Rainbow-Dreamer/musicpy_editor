@@ -1271,7 +1271,7 @@ class Root(Tk):
             self.last_place = memory
             self.inputs.insert(
                 END,
-                f"new_midi_file = read(\"{filename}\", mode='all', to_piece=True)\n"
+                f"new_midi_file = read(\"{filename}\")\n"
             )
 
     def stop_play_midi(self):
