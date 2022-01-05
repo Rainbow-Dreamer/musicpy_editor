@@ -84,4 +84,5 @@ class setup:
         all_track_notes += pitch_bends
         if self.set_bpm:
             tempo = float(self.set_bpm)
+        first_track_start_time += all_track_notes.start_time
         self.read_result = tempo, all_track_notes, first_track_start_time
