@@ -7,6 +7,7 @@ import importlib
 
 
 class setup:
+
     def __init__(self):
         self.file_path = 'temp.mid'
         self.action = 0
@@ -22,16 +23,10 @@ class setup:
     def load_midi_file(self):
         try:
             all_tracks = mp.read(self.file_path,
-                                 self.track_ind_get,
-                                 mode='all',
-                                 get_off_drums=piano_config.get_off_drums,
-                                 to_piece=True)
+                                 get_off_drums=piano_config.get_off_drums)
         except:
             all_tracks = mp.read(self.file_path,
-                                 self.track_ind_get,
-                                 mode='all',
                                  get_off_drums=piano_config.get_off_drums,
-                                 to_piece=True,
                                  split_channels=True)
         all_tracks.normalize_tempo()
         all_tracks = [(all_tracks.bpm, all_tracks.tracks[i],
