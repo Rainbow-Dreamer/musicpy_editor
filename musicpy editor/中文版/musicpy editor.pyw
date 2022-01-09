@@ -4,14 +4,23 @@ from tkinter import ttk
 from tkinter import font
 from tkinter.scrolledtext import ScrolledText
 from tkinter import filedialog
-import PIL.Image, PIL.ImageTk
+from tkinter import messagebox
 import sys
 import os
 import re
-from yapf.yapflib.yapf_api import FormatCode
 from io import BytesIO
-import musicpy
-from visualization.tools.change_settings import config_window
+try:
+    import PIL.Image, PIL.ImageTk
+    from yapf.yapflib.yapf_api import FormatCode
+    import musicpy
+    from visualization.tools.change_settings import config_window
+except ImportError:
+    Tk().withdraw()
+    messagebox.showerror(
+        message=
+        'Not all required python packages are installed. Please run\npip install musicpy pillow pyglet==1.5.11 yapf\nin the terminal to install the required packages for this editor.'
+    )
+    sys.exit(0)
 
 sys.path.append('visualization/packages')
 sys.path.append('visualization/tools')
@@ -45,6 +54,7 @@ def direct_play(filename):
 
 
 class Root(Tk):
+
     def __init__(self):
         super(Root, self).__init__()
         self.minsize(1200, 640)
@@ -1262,10 +1272,7 @@ class Root(Tk):
             with open('browse memory.txt', 'w', encoding='utf-8-sig') as f:
                 f.write(memory)
             self.last_place = memory
-            self.inputs.insert(
-                END,
-                f"new_midi_file = read(\"{filename}\")\n"
-            )
+            self.inputs.insert(END, f"new_midi_file = read(\"{filename}\")\n")
 
     def stop_play_midi(self):
         pygame.mixer.music.stop()
