@@ -11,7 +11,6 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 import py
-from pydub import AudioSegment
 import browse
 import musicpy as mp
 from ast import literal_eval
@@ -66,6 +65,7 @@ def update(dt):
 
 
 class ideal_piano_button:
+
     def __init__(self, img, x, y):
         self.img = get_image(img).get_transform()
         self.img.width /= piano_config.button_resize_num
@@ -90,6 +90,7 @@ class ideal_piano_button:
 
 
 class piano_window(pyglet.window.Window):
+
     def __init__(self):
         self.init_window()
         self.init_parameters()
@@ -457,6 +458,7 @@ class piano_window(pyglet.window.Window):
 
 
 class piano_engine:
+
     def __init__(self):
         self.init_parameters()
 

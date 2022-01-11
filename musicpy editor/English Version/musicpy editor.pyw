@@ -14,17 +14,16 @@ try:
     from yapf.yapflib.yapf_api import FormatCode
     import musicpy
     from visualization.tools.change_settings import config_window
+    sys.path.append('visualization/packages')
+    sys.path.append('visualization/tools')
+    import visualization.Ideal_Piano
 except ImportError:
     Tk().withdraw()
     messagebox.showerror(
         message=
-        'Not all required python packages are installed. Please run\npip install musicpy pillow pyglet==1.5.11 yapf\nin the terminal to install the required packages for this editor.'
+        'Not all required python packages are installed. Please run\npip install musicpy pillow pyglet==1.5.11 yapf py\nin the terminal to install the required packages for this editor.'
     )
     sys.exit(0)
-
-sys.path.append('visualization/packages')
-sys.path.append('visualization/tools')
-import visualization.Ideal_Piano
 
 musicpy_vars = dir(musicpy)
 from musicpy import *
