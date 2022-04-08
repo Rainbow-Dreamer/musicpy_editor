@@ -1,5 +1,7 @@
 from musicpy import *
+
 # database
+
 INTERVAL = {
     0: '纯一度',
     1: '小二度',
@@ -122,7 +124,7 @@ def inversion_from(a, b, num=False, mode=0):
         temp = b.inversion(i)
         if [x.name for x in temp.notes] == [y.name for y in a.notes]:
             return f'/{a[0].name}' if not num else f'第{i}转位'
-    return f'could not get chord {a.notes} from a single inversion of chord {b.notes}, you could try sort from' if mode == 0 else None
+    return f'could not get chord {a.notes} from a single inversion of chord {b.notes}, you could try sort_from' if mode == 0 else None
 
 
 def sort_from(a, b, getorder=False):
@@ -165,9 +167,11 @@ def change_from(a,
                 octave_b=False,
                 same_degree=True,
                 alter_notes_show_degree=False):
-    # how a is changed from b (flat or sharp some notes of b to get a)
-    # this is used only when two chords have the same number of notes
-    # in the detect chord function
+    '''
+    how a is changed from b (flat or sharp some notes of b to get a)
+    this is used only when two chords have the same number of notes
+    in the detect chord function
+    '''
     if octave_a:
         a = a.inoctave()
     if octave_b:
@@ -204,8 +208,10 @@ def change_from(a,
 
 
 def contains(a, b):
-    # if b contains a (notes), in other words,
-    # all of a's notes is inside b's notes
+    '''
+    if b contains a (notes), in other words,
+    all of a's notes is inside b's notes
+    '''
     return set(a.names()) < set(b.names()) and len(a) < len(b)
 
 
@@ -549,7 +555,6 @@ def detect(current_chord,
            poly_chord_first=False,
            root_position_return_first=True,
            alter_notes_show_degree=False):
-    # mode could be chord/scale
     if mode == 'chord':
         if not isinstance(current_chord, chord):
             current_chord = chord(current_chord)
