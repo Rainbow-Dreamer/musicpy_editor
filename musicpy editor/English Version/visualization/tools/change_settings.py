@@ -45,6 +45,7 @@ def change(var, new, is_str=True):
 
 
 class config_window(tk.Toplevel):
+
     def __init__(self, parent):
         self.parent = parent
         with open(config_path, encoding='utf-8-sig') as f:
@@ -219,8 +220,7 @@ class config_window(tk.Toplevel):
             self.config_contents.insert(tk.END, current_config_value)
 
     def choose_filename(self):
-        filename = filedialog.askopenfilename(initialdir='.',
-                                              title="choose filename",
+        filename = filedialog.askopenfilename(title="choose filename",
                                               filetypes=(("all files",
                                                           "*.*"), ))
         if filename:
@@ -229,10 +229,7 @@ class config_window(tk.Toplevel):
             self.config_change(0)
 
     def choose_directory(self):
-        directory = filedialog.askdirectory(
-            initialdir='.',
-            title="choose directory",
-        )
+        directory = filedialog.askdirectory(title="choose directory", )
         if directory:
             self.config_contents.delete('1.0', tk.END)
             self.config_contents.insert(tk.END, f"'{directory}'")
