@@ -1,4 +1,4 @@
-﻿config_dict = {
+config_dict = {
     'background_image': 'tenshi.jpg',
     'background_places': (870, -30),
     'eachline_character': 58,
