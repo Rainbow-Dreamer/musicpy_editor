@@ -1338,8 +1338,9 @@ class Root(Tk):
         if not self.case_sensitive:
             all_text = all_text.lower()
             current = current.lower()
-        self.search_inds_list = [[m.start(), m.end()]
-                                 for m in re.finditer(current, all_text)]
+        self.search_inds_list = [[
+            m.start(), m.end()
+        ] for m in re.finditer(re.escape(current), all_text)]
         for each in self.search_inds_list:
             ind1, ind2 = each
             newline = "\n"
