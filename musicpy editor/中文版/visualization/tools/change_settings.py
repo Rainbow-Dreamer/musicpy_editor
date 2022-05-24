@@ -48,7 +48,7 @@ class config_window(tk.Toplevel):
 
     def __init__(self, parent):
         self.parent = parent
-        with open(config_path, encoding='utf-8-sig') as f:
+        with open(config_path, encoding='utf-8') as f:
             text = f.read()
             exec(text, globals(), globals())
         super(config_window, self).__init__()
