@@ -1078,7 +1078,7 @@ class Root(Tk):
                 if each[0] == '/':
                     lines[i] = f'play({each[1:]})'
                 elif each[0] == '?':
-                    lines[i] = f'detect({each[1:]})'
+                    lines[i] = f'alg.detect({each[1:]})'
         text = '\n'.join(lines)
         try:
             exec(text, globals())
@@ -1104,7 +1104,7 @@ class Root(Tk):
                 if each[0] == '/':
                     lines[i] = f'play({each[1:]})'
                 elif each[0] == '?':
-                    lines[i] = f'detect({each[1:]})'
+                    lines[i] = f'alg.detect({each[1:]})'
         text = '\n'.join(lines)
         try:
             exec(text, globals())
