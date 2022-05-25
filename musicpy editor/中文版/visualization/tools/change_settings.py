@@ -54,6 +54,7 @@ class config_window(tk.Toplevel):
         super(config_window, self).__init__()
         self.title("Settings")
         self.minsize(800, 600)
+        self.configure(background=parent.background_color)
         self.config_options_bar = tk.Scrollbar(self)
         self.config_options_bar.place(x=235,
                                       y=120,
