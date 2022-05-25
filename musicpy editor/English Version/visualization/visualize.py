@@ -633,9 +633,14 @@ class piano_engine:
                          name='temp.mid')
                 pygame.mixer.music.load('temp.mid')
             else:
-                try:
+                with open(self.path, 'rb') as f:
+                    if f.read(4) == b'RIFF':
+                        is_riff_midi = True
+                    else:
+                        is_riff_midi = False
+                if not is_riff_midi:
                     pygame.mixer.music.load(self.path)
-                except:
+                else:
                     current_path = mp.riff_to_midi(self.path)
                     current_buffer = current_path.getbuffer()
                     with open('temp.mid', 'wb') as f:
