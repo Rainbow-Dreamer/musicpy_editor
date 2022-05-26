@@ -654,15 +654,7 @@ class piano_engine:
         self._midi_show_init_note_list(musicsheet, unit_time, playls)
 
     def _load_file(self, path):
-        if sys.platform == 'linux':
-            import subprocess
-            file_name = os.path.split(path)[-1]
-            self.current_convert_name = f'resources/{os.path.splitext(file_name)[0]}.wav'
-            current_command = f'timidity "{path}" -Ow --output-file="{self.current_convert_name}"'
-            subprocess.run([current_command], shell=True)
-            pygame.mixer.music.load(self.current_convert_name)
-        else:
-            pygame.mixer.music.load(path)
+        pygame.mixer.music.load(path)
 
     def _midi_show_init_note_list(self, musicsheet, unit_time, playls, mode=0):
         musicsheet.clear_pitch_bend('all')
