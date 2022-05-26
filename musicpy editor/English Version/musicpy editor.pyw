@@ -310,7 +310,11 @@ class Root(Tk):
                                  command=self.search_words,
                                  foreground=self.foreground_color)
         self.inputs.bind("<Button-1>", lambda e: self.close_select())
-        self.inputs.bind("<Button-3>", lambda e: self.rightKey(e))
+        if sys.platform == 'darwin':
+            self.inputs.bind("<Button-2>", lambda e: self.rightKey(e))
+        else:
+            self.inputs.bind("<Button-3>", lambda e: self.rightKey(e))
+        self.bind('<Control-a>', lambda e: self.choose_all())
         self.bind('<Control-f>', lambda e: self.search_words())
         self.bind('<Control-e>', lambda e: self.stop_play_midi())
         self.bind('<Control-d>', lambda e: self.read_midi_file())
