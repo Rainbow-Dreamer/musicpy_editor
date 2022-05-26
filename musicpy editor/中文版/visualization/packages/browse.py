@@ -1,9 +1,5 @@
-import time
 import musicpy as mp
-import os
-import sys
 import piano_config
-import importlib
 
 
 class setup:
@@ -22,13 +18,30 @@ class setup:
 
     def load_midi_file(self):
         try:
-            all_tracks = mp.read(self.file_path,
-                                 get_off_drums=piano_config.get_off_drums)
+            all_tracks = mp.read(self.file_path, get_off_drums=False)
+            if len(all_tracks) == 1:
+                if piano_config.get_off_drums and any(
+                        i.channel == 9 for i in all_tracks.tracks[0]):
+                    all_tracks = mp.read(self.file_path,
+                                         get_off_drums=False,
+                                         split_channels=True)
         except:
             all_tracks = mp.read(self.file_path,
-                                 get_off_drums=piano_config.get_off_drums,
+                                 get_off_drums=False,
                                  split_channels=True)
         all_tracks.normalize_tempo()
+        current_bpm = all_tracks.bpm
+        i = 0
+        while i < len(all_tracks):
+            current_track = all_tracks.tracks[i]
+            if all(not isinstance(k, mp.note) for k in current_track):
+                del all_tracks[i]
+                continue
+            i += 1
+        actual_start_time = min(all_tracks.start_times)
+        if piano_config.get_off_drums:
+            while 9 in all_tracks.channels:
+                del all_tracks[all_tracks.channels.index(9)]
         all_tracks = [(all_tracks.bpm, all_tracks.tracks[i],
                        all_tracks.start_times[i])
                       for i in range(len(all_tracks.tracks))]
@@ -80,4 +93,4 @@ class setup:
         if self.set_bpm:
             tempo = float(self.set_bpm)
         first_track_start_time += all_track_notes.start_time
-        self.read_result = tempo, all_track_notes, first_track_start_time
+        self.read_result = tempo, all_track_notes, first_track_start_time, actual_start_time

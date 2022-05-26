@@ -5,12 +5,7 @@ import pygame
 import pygame.midi
 import time
 import pyglet
-import mido
-import midiutil
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
-import py
 import browse
 import musicpy as mp
 from ast import literal_eval
@@ -454,6 +449,11 @@ class piano_window(pyglet.window.Window):
         pygame.mixer.music.stop()
         pyglet.clock.unschedule(self.func)
         pyglet.clock.unschedule(current_piano_engine.midi_file_play)
+        if not piano_config.use_soundfont and sys.platform == 'linux':
+            try:
+                os.remove(current_piano_engine.current_convert_name)
+            except:
+                pass
         self.close()
 
 
@@ -561,7 +561,7 @@ class piano_engine:
             return 'back'
         if self.path and read_result:
             if read_result != 'error':
-                self.bpm, self.musicsheet, start_time = read_result
+                self.bpm, self.musicsheet, start_time, actual_start_time = read_result
                 self.musicsheet, new_start_time = self.musicsheet.pitch_filter(
                     *piano_config.pitch_range)
                 start_time += new_start_time
@@ -596,6 +596,7 @@ class piano_engine:
         # 0 means has not been played yet, 1 means it has started playing,
         # 2 means it has stopped playing
         self.musicsheet.start_time = start_time
+        self.musicsheet.actual_start_time = actual_start_time
         self.playls = self._midi_show_init(self.musicsheet, self.unit_time,
                                            start_time)
         if piano_config.show_music_analysis:
@@ -631,7 +632,7 @@ class piano_engine:
                          60 / (unit_time / 4),
                          start_time=musicsheet.start_time,
                          name='temp.mid')
-                pygame.mixer.music.load('temp.mid')
+                self._load_file('temp.mid')
             else:
                 with open(self.path, 'rb') as f:
                     if f.read(4) == b'RIFF':
@@ -639,16 +640,29 @@ class piano_engine:
                     else:
                         is_riff_midi = False
                 if not is_riff_midi:
-                    pygame.mixer.music.load(self.path)
+                    self._load_file(self.path)
                 else:
                     current_path = mp.riff_to_midi(self.path)
                     current_buffer = current_path.getbuffer()
                     with open('temp.mid', 'wb') as f:
                         f.write(current_buffer)
-                    pygame.mixer.music.load('temp.mid')
-        pyglet.clock.schedule_once(self.midi_file_play,
-                                   current_piano_window.bars_drop_interval)
+                    self._load_file('temp.mid')
+        current_start_time = current_piano_window.bars_drop_interval
+        if sys.platform == 'linux' and not piano_config.use_soundfont:
+            current_start_time += self.musicsheet.actual_start_time * self.unit_time
+        pyglet.clock.schedule_once(self.midi_file_play, current_start_time)
         self._midi_show_init_note_list(musicsheet, unit_time, playls)
+
+    def _load_file(self, path):
+        if sys.platform == 'linux':
+            import subprocess
+            file_name = os.path.split(path)[-1]
+            self.current_convert_name = f'resources/{os.path.splitext(file_name)[0]}.wav'
+            current_command = f'timidity "{path}" -Ow --output-file="{self.current_convert_name}"'
+            subprocess.run([current_command], shell=True)
+            pygame.mixer.music.load(self.current_convert_name)
+        else:
+            pygame.mixer.music.load(path)
 
     def _midi_show_init_note_list(self, musicsheet, unit_time, playls, mode=0):
         musicsheet.clear_pitch_bend('all')
