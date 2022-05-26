@@ -9,7 +9,8 @@ Then run this line in cmd/terminal:
 pip install musicpy pillow pyglet==1.5.11 yapf py
 ```
 
-**Note: In Linux, you need to install the pillow library by running `sudo apt-get install python3-pil.imagetk` (in Ubuntu)**
+**Note: In Linux, you need to install the pillow library by running `sudo apt-get install python3-pil.imagetk` (in Ubuntu),
+and you need to install freepats and timidty in order to make the play function works, in Ubuntu, you can run `sudo apt-get install freepats timidity`**
 
 Then download the source codes from [here](https://github.com/Rainbow-Dreamer/musicpy_editor/archive/refs/heads/main.zip), extract the folder `musicpy editor` from the zip file, go to the `musicpy editor` folder, you can go to `English Version` folder if you want to use English version of musicpy editor or `中文版` folder if you want to use Chinese version, and then open the file `musicpy editor.pyw` in the folder you choose to use musicpy editor.
 
