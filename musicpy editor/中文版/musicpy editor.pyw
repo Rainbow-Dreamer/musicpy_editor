@@ -16,7 +16,7 @@ try:
     from visualization.tools.change_settings import config_window
     sys.path.append('visualization/packages')
     sys.path.append('visualization/tools')
-    import visualization.visualize
+    from visualization.packages import visualize
 except ImportError:
     Tk().withdraw()
     messagebox.showerror(
@@ -1235,7 +1235,7 @@ class Root(Tk):
             self.outputs.delete('1.0', END)
             self.outputs.insert(END, '选中的语句无法播放')
             return
-        visualization.visualize.start()
+        visualize.start()
 
     def read_midi_file(self):
         filename = filedialog.askopenfilename(title="选择MIDI文件",
