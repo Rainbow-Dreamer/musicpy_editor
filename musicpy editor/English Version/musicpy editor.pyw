@@ -460,8 +460,7 @@ class Root(Tk):
 
     def openfile(self):
         filename = filedialog.askopenfilename(title="Choose Files",
-                                              filetypes=(("All Files",
-                                                          "*.*"), ))
+                                              filetypes=(("All Files", "*"), ))
         if filename:
             self.current_filename_path = filename
             try:
@@ -550,8 +549,7 @@ class Root(Tk):
     def choose_filename(self):
         filename = filedialog.askopenfilename(parent=self.config_window,
                                               title="Choose Filename",
-                                              filetypes=(("all files",
-                                                          "*.*"), ))
+                                              filetypes=(("all files", "*"), ))
         self.config_contents.delete('1.0', END)
         self.config_contents.insert(END, filename)
         self.config_change()
@@ -757,8 +755,7 @@ class Root(Tk):
     def search_path(self, obj):
         filename = filedialog.askopenfilename(parent=self.config_window,
                                               title="Choose Files",
-                                              filetypes=(("All Files",
-                                                          "*.*"), ))
+                                              filetypes=(("All Files", "*"), ))
         if filename:
             obj.delete(0, END)
             obj.insert(END, filename)
@@ -822,7 +819,7 @@ class Root(Tk):
     def save(self):
         filename = filedialog.asksaveasfilename(title="Save Input Text",
                                                 filetypes=(("All Files",
-                                                            "*.*"), ),
+                                                            "*"), ),
                                                 defaultextension=".txt",
                                                 initialfile='Untitled.txt')
         if filename:
@@ -1249,9 +1246,8 @@ class Root(Tk):
 
     def read_midi_file(self):
         filename = filedialog.askopenfilename(title="Choose MIDI File",
-                                              filetypes=(("MIDI File",
-                                                          "*.mid"),
-                                                         ("All Files", "*.*")))
+                                              filetypes=(("MIDI File", ".mid"),
+                                                         ("All Files", "*")))
         if filename:
             self.inputs.insert(END, f"new_midi_file = read(\"{filename}\")\n")
 
