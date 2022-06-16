@@ -554,7 +554,7 @@ def interval_check(current_chord):
         interval_name = INTERVAL[dist % 12]
     root_note_name = current_chord[0].name
     if interval_name == '纯五度':
-        return f'{root_note_name} 和纯五度 / {root_note_name}5 ({root_note_name} 强力和弦)'
+        return f'{root_note_name} 和 纯五度 / {root_note_name}5 ({root_note_name} 强力和弦)'
     return f'{root_note_name} 和 {interval_name}'
 
 
@@ -860,10 +860,9 @@ browse_language_dict = {
     'MIDI files': "MIDI文件",
     'go back': "返回",
     'choose MIDI file': "选择你想要播放的MIDI文件",
-    'no notes': '这个轨道没有音符',
     'out of index': '这个轨道不存在',
     'cancel': "取消",
-    'trackind': 'midi轨道序号:',
+    'trackind': 'MIDI轨道序号',
     'from': '从',
     'to': '到',
     'melody': '去除主旋律，只看和弦部分',
@@ -880,12 +879,20 @@ ideal_piano_language_dict = {
     'reload': '重新加载设置',
     'load': '正在加载音源，请稍候...',
     'finished': '音源加载完成',
-    'no MIDI input': '没有检测到MIDI设备接入，请检查是否接入',
-    'error message': '错误信息',
+    'no MIDI input': 'MIDI设备id不存在，\n请右键点击MIDI KEYBOARD按钮选择一个MIDI设备',
     'pause': '已暂停, 按{unpause_key}键继续',
     'repeat': '音乐播放完毕, 按{repeat_key}键重新听一遍',
     'sample': '正在使用音频采样渲染当前MIDI文件，请稍等',
-    'close': '按ctrl可以关掉我哦~\n',
-    'default': '默认',
-    'soundfont': '正在使用SoundFont渲染当前MIDI文件，请稍等'
+    'soundfont': '正在使用SoundFont渲染当前MIDI文件，请稍等',
+    'type': '类型',
+    'chord name': '和弦名称',
+    'root': '根音',
+    'note name': '音符名称',
+    'interval name': '音程名称',
+    'whole name': '完整名称',
+    'other': '其他',
+    'chord': '和弦',
+    'note': '音符',
+    'interval': '音程',
+    'with': '和'
 }
