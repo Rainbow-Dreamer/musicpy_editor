@@ -9,6 +9,9 @@ import sys
 import os
 import re
 from io import BytesIO
+
+abs_path = os.path.dirname(os.path.abspath(__file__))
+os.chdir(abs_path)
 try:
     import PIL.Image, PIL.ImageTk
     from yapf.yapflib.yapf_api import FormatCode
