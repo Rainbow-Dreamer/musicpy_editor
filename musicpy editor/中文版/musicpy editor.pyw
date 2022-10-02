@@ -9,6 +9,7 @@ import sys
 import os
 import re
 from io import BytesIO
+import json
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)
@@ -16,11 +17,12 @@ try:
     import PIL.Image, PIL.ImageTk
     from yapf.yapflib.yapf_api import FormatCode
     import musicpy
-    from visualization.tools.change_settings import config_window
+    from visualization.packages.change_settings import settings_window
     sys.path.append('visualization/packages')
-    sys.path.append('visualization/tools')
     from visualization.packages import visualize
 except ImportError:
+    import traceback
+    print(traceback.format_exc())
     Tk().withdraw()
     messagebox.showerror(
         message=
@@ -30,8 +32,11 @@ except ImportError:
 
 musicpy_vars = dir(musicpy)
 from musicpy import *
-with open('config.py', encoding='utf-8') as f:
-    exec(f.read())
+
+config_path = 'config.json'
+piano_config_path = 'visualization/packages/piano_config.json'
+with open(config_path, encoding='utf-8') as f:
+    config_dict = json.load(f)
 
 
 def print(obj):
@@ -413,7 +418,7 @@ class Root(Tk):
         if self.visualize_config_box_open:
             return
         self.visualize_config_box_open = True
-        current_config_window = config_window(self)
+        current_config_window = settings_window(piano_config_path, root=self)
         current_config_window.mainloop()
 
     def get_current_line_column(self):
@@ -746,9 +751,12 @@ class Root(Tk):
                         config_dict[each] = eval(changed)
                     else:
                         config_dict[each] = changed
-        with open('config.py', 'w', encoding='utf-8') as f:
-            formated_config = FormatCode(f'config_dict = {config_dict}\n')[0]
-            f.write(formated_config)
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config_dict,
+                      f,
+                      indent=4,
+                      separators=(',', ': '),
+                      ensure_ascii=False)
         if not outer:
             self.saved_label.place(x=360, y=400)
             self.after(600, self.saved_label.place_forget)

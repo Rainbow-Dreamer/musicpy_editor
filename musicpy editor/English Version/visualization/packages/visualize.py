@@ -9,10 +9,13 @@ import tkinter as tk
 import browse
 import musicpy as mp
 from ast import literal_eval
-import piano_config
-from change_settings import config_window
+import json_module
+from change_settings import settings_window
 from copy import deepcopy as copy
 import importlib
+
+piano_config_path = 'visualization/packages/piano_config.json'
+piano_config = json_module.json_module(piano_config_path)
 
 if sys.platform == 'darwin':
     current_test = tk.Tk()
@@ -462,7 +465,7 @@ class piano_window(pyglet.window.Window):
         self.keyboard_handler[self.config_key] = False
         self.keyboard_handler[key.S] = False
         os.chdir(abs_path)
-        current_config_window = config_window()
+        current_config_window = settings_window(piano_config_path)
         current_config_window.mainloop()
         self.reload_settings()
 

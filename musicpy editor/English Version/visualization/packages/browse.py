@@ -1,5 +1,8 @@
 import musicpy as mp
-import piano_config
+import json_module
+
+piano_config_path = 'visualization/packages/piano_config.json'
+piano_config = json_module.json_module(piano_config_path)
 
 
 class setup:
