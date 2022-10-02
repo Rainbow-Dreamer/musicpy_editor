@@ -65,7 +65,7 @@ class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
         self.minsize(1200, 640)
-        self.title('Musicpy Editor')
+        self.title('Musicpy 编辑器')
         self.background_color = config_dict['background_color']
         self.foreground_color = config_dict['foreground_color']
         self.active_background_color = config_dict['active_background_color']
@@ -126,7 +126,7 @@ class Root(Tk):
         except:
             pass
         self.inputs_text = ttk.Label(self,
-                                     text='Input musicpy codes here',
+                                     text='请在这里输入 musicpy 音乐代码语句',
                                      background=self.background_color)
         self.inputs = Text(self,
                            wrap='none',
@@ -149,7 +149,7 @@ class Root(Tk):
         inputs_v.place(x=700, y=60, height=200)
         inputs_h.place(x=0, y=260, width=700)
         self.outputs_text = ttk.Label(self,
-                                      text='Output',
+                                      text='在这里显示运行结果',
                                       background=self.background_color)
         self.outputs = Text(self, wrap='none')
         self.outputs.configure(font=(self.font_type, self.font_size))
@@ -165,12 +165,12 @@ class Root(Tk):
                                xscrollcommand=outputs_h.set)
         outputs_v.place(x=700, y=310, height=300)
         outputs_h.place(x=0, y=610, width=700)
-        self.run_button = ttk.Button(self, text='Run', command=self.runs)
+        self.run_button = ttk.Button(self, text='运行', command=self.runs)
         self.run_button.place(x=160, y=0)
         self.realtime = IntVar()
         self.realtime.set(1)
         self.realtime_box = ttk.Checkbutton(self,
-                                            text='Real Time',
+                                            text='实时运行',
                                             variable=self.realtime,
                                             command=self.check_realtime)
         self.is_realtime = 1
@@ -178,37 +178,37 @@ class Root(Tk):
         self.no_print = IntVar()
         self.no_print.set(1)
         self.print_box = ttk.Checkbutton(self,
-                                         text="Don't use print",
+                                         text='不使用 print',
                                          variable=self.no_print,
                                          command=self.check_print)
         self.auto = IntVar()
         self.auto.set(1)
         self.is_auto = 1
         self.auto_box = ttk.Checkbutton(self,
-                                        text='Autocomplete',
+                                        text='自动补全',
                                         variable=self.auto,
                                         command=self.check_auto)
         self.is_grammar = 1
         self.grammar = IntVar()
         self.grammar.set(1)
         self.grammar_box = ttk.Checkbutton(self,
-                                           text='Syntax Highlight',
+                                           text='语法高亮',
                                            variable=self.grammar,
                                            command=self.check_grammar)
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
         self.wraplines_number = config_dict['wraplines_number']
         self.wraplines_button = ttk.Button(self,
-                                           text='Word Wrap',
+                                           text='自动换行',
                                            command=self.wraplines)
-        self.realtime_box.place(x=410, y=0)
-        self.auto_box.place(x=500, y=0)
+        self.realtime_box.place(x=420, y=0)
+        self.auto_box.place(x=520, y=0)
         self.grammar_box.place(x=740, y=0)
         self.wraplines_button.place(x=750, y=350)
         self.print_box.place(x=620, y=0)
 
         self.save_button = ttk.Button(self,
-                                      text='Save',
+                                      text='保存',
                                       command=self.save_current_file)
         self.save_button.place(x=80, y=0)
         self.is_print = 1
@@ -228,7 +228,7 @@ class Root(Tk):
         self.bind('<Right>', lambda e: self.close_select())
         self.bind('<Return>', lambda e: self.get_current_select())
         self.file_top = ttk.Button(self,
-                                   text='File',
+                                   text='文件',
                                    command=self.file_top_make_menu)
         self.file_menu = Menu(
             self,
@@ -237,27 +237,27 @@ class Root(Tk):
             activebackground=self.active_background_color,
             activeforeground=self.active_foreground_color,
             disabledforeground=self.disabled_foreground_color)
-        self.file_menu.add_command(label='Open',
+        self.file_menu.add_command(label='打开',
                                    command=self.openfile,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Save',
+        self.file_menu.add_command(label='保存',
                                    command=self.save_current_file,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Save As',
+        self.file_menu.add_command(label='另存为',
                                    command=self.save,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Settings',
+        self.file_menu.add_command(label='设置',
                                    command=self.config_options,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Import MIDI File',
+        self.file_menu.add_command(label='导入MIDI文件',
                                    command=self.read_midi_file,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Visualize Settings',
+        self.file_menu.add_command(label='可视化钢琴设置',
                                    command=self.visualize_config,
                                    foreground=self.foreground_color)
         self.file_top.place(x=0, y=0)
         self.config_button = ttk.Button(self,
-                                        text='Settings',
+                                        text='设置',
                                         command=self.config_options)
         self.config_button.place(x=320, y=0)
         grammar_highlight = config_dict['grammar_highlight']
@@ -272,7 +272,7 @@ class Root(Tk):
         self.bg_mode = config_dict['background_mode']
         self.turn_bg_mode = ttk.Button(
             self,
-            text='Light On' if self.bg_mode == 'black' else 'Light Off',
+            text='开灯' if self.bg_mode == 'black' else '关灯',
             command=self.change_background_color_mode)
         self.turn_bg_mode.place(x=240, y=0)
         self.change_background_color_mode(turn=False)
@@ -284,37 +284,37 @@ class Root(Tk):
                             activebackground=self.active_background_color,
                             activeforeground=self.active_foreground_color,
                             disabledforeground=self.disabled_foreground_color)
-        self.menubar.add_command(label='Cut',
+        self.menubar.add_command(label='剪切',
                                  command=self.cut,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Copy',
+        self.menubar.add_command(label='复制',
                                  command=self.copy,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Paste',
+        self.menubar.add_command(label='粘贴',
                                  command=self.paste,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Select All',
+        self.menubar.add_command(label='全选',
                                  command=self.choose_all,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Undo',
+        self.menubar.add_command(label='撤销',
                                  command=self.inputs_undo,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Redo',
+        self.menubar.add_command(label='恢复',
                                  command=self.inputs_redo,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Play Selected Code',
+        self.menubar.add_command(label='播放选中语句',
                                  command=self.play_select_text,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Play Selected Code Visually',
+        self.menubar.add_command(label='可视化播放选中语句',
                                  command=self.visualize_play_select_text,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Import MIDI File',
+        self.menubar.add_command(label='导入MIDI文件',
                                  command=self.read_midi_file,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Stop Playing',
+        self.menubar.add_command(label='停止播放',
                                  command=self.stop_play_midi,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Search',
+        self.menubar.add_command(label='搜索',
                                  command=self.search_words,
                                  foreground=self.foreground_color)
         self.inputs.bind("<Button-1>", lambda e: self.close_select())
@@ -358,9 +358,9 @@ class Root(Tk):
     def check_if_edited(self):
         current_text = self.inputs.get('1.0', 'end-1c')
         if current_text != self.last_save:
-            self.title('Musicpy Editor *')
+            self.title('Musicpy 编辑器 *')
         else:
-            self.title('Musicpy Editor')
+            self.title('Musicpy 编辑器')
         self.after(100, self.check_if_edited)
 
     def close_window(self):
@@ -379,22 +379,21 @@ class Root(Tk):
             self.ask_save_window.geometry(
                 f"+{ask_save_window_x + 300}+{ask_save_window_y + 200}")
             self.ask_save_window.ask_save_label = ttk.Label(
-                self.ask_save_window,
-                text='The file has changed, do you want to save the changes?')
+                self.ask_save_window, text='文件已经更改,是否需要保存？')
             self.ask_save_window.ask_save_label.place(x=0, y=30)
             self.ask_save_window.save_button = ttk.Button(
                 self.ask_save_window,
-                text='Save',
+                text='保存',
                 command=self.save_and_quit,
                 style='New.TButton')
             self.ask_save_window.not_save_button = ttk.Button(
                 self.ask_save_window,
-                text='Discard',
+                text='丢弃',
                 command=self.destroy_and_quit,
                 style='New.TButton')
             self.ask_save_window.cancel_button = ttk.Button(
                 self.ask_save_window,
-                text='Cancel',
+                text='取消',
                 command=self.ask_save_window.destroy,
                 style='New.TButton')
             self.ask_save_window.save_button.place(x=0, y=100)
@@ -453,7 +452,7 @@ class Root(Tk):
                                    fg='black',
                                    insertbackground='black')
             self.bg_mode = 'white'
-            self.turn_bg_mode.configure(text='Light Off')
+            self.turn_bg_mode.configure(text='关灯')
         elif self.bg_mode == 'black':
             self.inputs.configure(background=self.night_color,
                                   foreground='white',
@@ -462,13 +461,13 @@ class Root(Tk):
                                    foreground='white',
                                    insertbackground='white')
             self.bg_mode = 'black'
-            self.turn_bg_mode.configure(text='Light On')
+            self.turn_bg_mode.configure(text='开灯')
         if turn:
             config_dict['background_mode'] = self.bg_mode
 
     def openfile(self):
-        filename = filedialog.askopenfilename(title="Choose Files",
-                                              filetypes=(("All Files", "*"), ))
+        filename = filedialog.askopenfilename(title="选择文件",
+                                              filetypes=(("所有文件", "*.*"), ))
         if filename:
             self.current_filename_path = filename
             try:
@@ -479,7 +478,7 @@ class Root(Tk):
                     self.last_save = self.inputs.get('1.0', 'end-1c')
             except:
                 self.inputs.delete('1.0', END)
-                self.inputs.insert(END, 'Not an available text file type')
+                self.inputs.insert(END, '不是有效的文本文件类型')
 
     def file_top_make_menu(self):
         self.file_menu.tk_popup(x=self.winfo_pointerx(),
@@ -556,8 +555,8 @@ class Root(Tk):
 
     def choose_filename(self):
         filename = filedialog.askopenfilename(parent=self.config_window,
-                                              title="Choose Filename",
-                                              filetypes=(("all files", "*"), ))
+                                              title="选择文件",
+                                              filetypes=(("所有文件", "*.*"), ))
         self.config_contents.delete('1.0', END)
         self.config_contents.insert(END, filename)
         self.config_change()
@@ -565,7 +564,7 @@ class Root(Tk):
     def choose_directory(self):
         directory = filedialog.askdirectory(
             parent=self.config_window,
-            title="Choose Directory",
+            title="选择文件夹",
         )
         self.config_contents.delete('1.0', END)
         self.config_contents.insert(END, directory)
@@ -583,7 +582,7 @@ class Root(Tk):
         self.config_box_open = True
         self.config_window = Toplevel(self, bg=self.background_color)
         self.config_window.minsize(800, 650)
-        self.config_window.title('Settings')
+        self.config_window.title('设置')
         self.config_window.protocol("WM_DELETE_WINDOW", self.close_config_box)
 
         global all_config_options
@@ -626,18 +625,18 @@ class Root(Tk):
         self.config_contents.place(x=350, y=50, width=400, height=200)
         self.config_window.choose_filename_button = ttk.Button(
             self.config_window,
-            text='Choose Filename',
+            text='选择文件名',
             command=self.choose_filename,
             width=20)
         self.config_window.choose_directory_button = ttk.Button(
             self.config_window,
-            text='Choose Directory',
+            text='选择路径',
             command=self.choose_directory,
             width=20)
         self.config_window.choose_filename_button.place(x=0, y=250)
         self.config_window.choose_directory_button.place(x=0, y=290)
-        self.config_window.search_text = ttk.Label(
-            self.config_window, text='Search config options')
+        self.config_window.search_text = ttk.Label(self.config_window,
+                                                   text='搜索设置参数')
         self.config_window.search_text.place(x=30, y=370)
         self.config_search_contents = StringVar()
         self.config_search_contents.trace_add('write', self.search_config)
@@ -647,12 +646,12 @@ class Root(Tk):
         self.config_window.search_inds = 0
         self.config_window.up_button = ttk.Button(
             self.config_window,
-            text='Previous',
+            text='上一个',
             command=lambda: self.change_search_inds(-1),
             width=8)
         self.config_window.down_button = ttk.Button(
             self.config_window,
-            text='Next',
+            text='下一个',
             command=lambda: self.change_search_inds(1),
             width=8)
         self.config_window.up_button.place(x=170, y=400)
@@ -670,13 +669,12 @@ class Root(Tk):
         self.config_window.choose_bool1.place(x=150, y=270)
         self.config_window.choose_bool2.place(x=250, y=270)
         save_button = ttk.Button(self.config_window,
-                                 text='Save',
+                                 text='保存',
                                  command=self.save_config)
         save_button.place(x=30, y=330)
-        self.saved_label = ttk.Label(self.config_window,
-                                     text='Successfully saved')
+        self.saved_label = ttk.Label(self.config_window, text='保存成功')
         self.choose_font = ttk.Button(self.config_window,
-                                      text='Choose Font',
+                                      text='选择字体',
                                       command=self.get_font)
         self.choose_font.place(x=230, y=460)
         self.whole_fonts = list(font.families())
@@ -702,7 +700,7 @@ class Root(Tk):
         self.change_sort_button.place(x=150, y=330, width=180)
 
         self.reload_button = ttk.Button(self.config_window,
-                                        text='Reload',
+                                        text='重新加载',
                                         command=self.reload)
         self.reload_button.place(x=230, y=510)
 
@@ -765,8 +763,8 @@ class Root(Tk):
 
     def search_path(self, obj):
         filename = filedialog.askopenfilename(parent=self.config_window,
-                                              title="Choose Files",
-                                              filetypes=(("All Files", "*"), ))
+                                              title="选择文件",
+                                              filetypes=(("所有文件", "*.*"), ))
         if filename:
             obj.delete(0, END)
             obj.insert(END, filename)
@@ -825,12 +823,11 @@ class Root(Tk):
                     f.write(self.last_save)
             else:
                 self.save()
-            self.title('Musicpy Editor')
+            self.title('Musicpy 编辑器')
 
     def save(self):
-        filename = filedialog.asksaveasfilename(title="Save Input Text",
-                                                filetypes=(("All Files",
-                                                            "*"), ),
+        filename = filedialog.asksaveasfilename(title="保存输入文本",
+                                                filetypes=(("所有文件", "*.*"), ),
                                                 defaultextension=".txt",
                                                 initialfile='Untitled.txt')
         if filename:
@@ -1108,7 +1105,7 @@ class Root(Tk):
                     except:
                         pass
         except:
-            self.outputs.insert(END, 'The codes are invalid\n')
+            self.outputs.insert(END, '代码不合法\n')
             self.outputs.insert(END, traceback.format_exc())
 
     def runs_2(self):
@@ -1243,7 +1240,7 @@ class Root(Tk):
             exec(f"play({selected_text})")
         except:
             self.outputs.delete('1.0', END)
-            self.outputs.insert(END, 'The codes selected cannot be played')
+            self.outputs.insert(END, '选中的语句无法播放')
 
     def visualize_play_select_text(self):
         try:
@@ -1251,14 +1248,14 @@ class Root(Tk):
             exec(f"write({selected_text}, name='temp.mid')")
         except:
             self.outputs.delete('1.0', END)
-            self.outputs.insert(END, 'The codes selected cannot be played')
+            self.outputs.insert(END, '选中的语句无法播放')
             return
         visualize.start()
 
     def read_midi_file(self):
-        filename = filedialog.askopenfilename(title="Choose MIDI File",
-                                              filetypes=(("MIDI File", ".mid"),
-                                                         ("All Files", "*")))
+        filename = filedialog.askopenfilename(title="选择MIDI文件",
+                                              filetypes=(("MIDI文件", "*.mid"),
+                                                         ("所有文件", "*.*")))
         if filename:
             self.inputs.insert(END, f"new_midi_file = read(\"{filename}\")\n")
 
@@ -1282,11 +1279,10 @@ class Root(Tk):
             return
         self.search_box = Toplevel(self, bg=self.background_color)
         self.search_box.protocol("WM_DELETE_WINDOW", self.close_search_box)
-        self.search_box.title('Search')
+        self.search_box.title('搜索')
         self.search_box.minsize(300, 200)
         self.search_box.geometry('250x150+350+300')
-        self.search_text = ttk.Label(
-            self.search_box, text='Please input text you want to search')
+        self.search_text = ttk.Label(self.search_box, text='请输入想要搜索的内容')
         self.search_text.place(x=0, y=0)
         self.search_contents = StringVar()
         self.search_contents.trace_add('write', self.search)
@@ -1301,11 +1297,11 @@ class Root(Tk):
         self.inputs.tag_configure('highlight_select',
                                   background=self.search_highlight_color[1])
         self.search_up = ttk.Button(self.search_box,
-                                    text='Previous',
+                                    text='上一个',
                                     command=lambda: self.change_search_ind(-1))
         self.search_down = ttk.Button(
             self.search_box,
-            text='Next',
+            text='下一个',
             command=lambda: self.change_search_ind(1))
         self.search_up.place(x=0, y=60)
         self.search_down.place(x=100, y=60)
@@ -1313,9 +1309,7 @@ class Root(Tk):
         self.check_case_sensitive = IntVar()
         self.check_case_sensitive.set(0)
         self.case_sensitive_box = ttk.Checkbutton(
-            self.search_box,
-            text='Case sensitive',
-            variable=self.check_case_sensitive)
+            self.search_box, text='区分大小写', variable=self.check_case_sensitive)
         self.case_sensitive_box.place(x=170, y=30)
 
     def change_search_ind(self, ind):
