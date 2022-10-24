@@ -37,6 +37,14 @@ config_path = 'config.json'
 piano_config_path = 'visualization/packages/piano_config.json'
 with open(config_path, encoding='utf-8') as f:
     config_dict = json.load(f)
+current_language = config_dict['language']
+current_language_file = f'languages/{current_language}.json'
+if not os.path.exists(current_language_file):
+    Tk().withdraw()
+    messagebox.showerror(
+        message=f'Cannot find language file for {current_language}')
+with open(current_language_file, encoding='utf-8') as f:
+    current_language_dict = json.load(f)
 
 
 def print(obj):
@@ -65,7 +73,7 @@ class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
         self.minsize(1200, 640)
-        self.title('Musicpy Editor')
+        self.title(f'Musicpy {current_language_dict["Editor"]}')
         self.background_color = config_dict['background_color']
         self.foreground_color = config_dict['foreground_color']
         self.active_background_color = config_dict['active_background_color']
@@ -125,9 +133,10 @@ class Root(Tk):
             self.bg_label.place(x=bg_places[0], y=bg_places[1])
         except:
             pass
-        self.inputs_text = ttk.Label(self,
-                                     text='Input musicpy codes here',
-                                     background=self.background_color)
+        self.inputs_text = ttk.Label(
+            self,
+            text=current_language_dict['Input musicpy codes here'],
+            background=self.background_color)
         self.inputs = Text(self,
                            wrap='none',
                            undo=True,
@@ -149,7 +158,7 @@ class Root(Tk):
         inputs_v.place(x=700, y=60, height=200)
         inputs_h.place(x=0, y=260, width=700)
         self.outputs_text = ttk.Label(self,
-                                      text='Output',
+                                      text=current_language_dict['Output'],
                                       background=self.background_color)
         self.outputs = Text(self, wrap='none')
         self.outputs.configure(font=(self.font_type, self.font_size))
@@ -165,50 +174,58 @@ class Root(Tk):
                                xscrollcommand=outputs_h.set)
         outputs_v.place(x=700, y=310, height=300)
         outputs_h.place(x=0, y=610, width=700)
-        self.run_button = ttk.Button(self, text='Run', command=self.runs)
+        self.run_button = ttk.Button(self,
+                                     text=current_language_dict['Run'],
+                                     command=self.runs)
         self.run_button.place(x=160, y=0)
         self.realtime = IntVar()
         self.realtime.set(1)
-        self.realtime_box = ttk.Checkbutton(self,
-                                            text='Real Time',
-                                            variable=self.realtime,
-                                            command=self.check_realtime)
+        self.realtime_box = ttk.Checkbutton(
+            self,
+            text=current_language_dict['Real Time'],
+            variable=self.realtime,
+            command=self.check_realtime)
         self.is_realtime = 1
         self.quit = False
         self.no_print = IntVar()
         self.no_print.set(1)
-        self.print_box = ttk.Checkbutton(self,
-                                         text="Don't use print",
-                                         variable=self.no_print,
-                                         command=self.check_print)
+        self.print_box = ttk.Checkbutton(
+            self,
+            text=current_language_dict["Don't use print"],
+            variable=self.no_print,
+            command=self.check_print)
         self.auto = IntVar()
         self.auto.set(1)
         self.is_auto = 1
-        self.auto_box = ttk.Checkbutton(self,
-                                        text='Autocomplete',
-                                        variable=self.auto,
-                                        command=self.check_auto)
+        self.auto_box = ttk.Checkbutton(
+            self,
+            text=current_language_dict['Autocomplete'],
+            variable=self.auto,
+            command=self.check_auto)
         self.is_grammar = 1
         self.grammar = IntVar()
         self.grammar.set(1)
-        self.grammar_box = ttk.Checkbutton(self,
-                                           text='Syntax Highlight',
-                                           variable=self.grammar,
-                                           command=self.check_grammar)
+        self.grammar_box = ttk.Checkbutton(
+            self,
+            text=current_language_dict['Syntax Highlight'],
+            variable=self.grammar,
+            command=self.check_grammar)
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
         self.wraplines_number = config_dict['wraplines_number']
-        self.wraplines_button = ttk.Button(self,
-                                           text='Word Wrap',
-                                           command=self.wraplines)
-        self.realtime_box.place(x=410, y=0)
-        self.auto_box.place(x=500, y=0)
+        self.wraplines_button = ttk.Button(
+            self,
+            text=current_language_dict['Word Wrap'],
+            command=self.wraplines)
+        self.realtime_box.place(x=current_language_dict['realtime_box_place'],
+                                y=0)
+        self.auto_box.place(x=current_language_dict['auto_box_place'], y=0)
         self.grammar_box.place(x=740, y=0)
         self.wraplines_button.place(x=750, y=350)
         self.print_box.place(x=620, y=0)
 
         self.save_button = ttk.Button(self,
-                                      text='Save',
+                                      text=current_language_dict['Save'],
                                       command=self.save_current_file)
         self.save_button.place(x=80, y=0)
         self.is_print = 1
@@ -228,7 +245,7 @@ class Root(Tk):
         self.bind('<Right>', lambda e: self.close_select())
         self.bind('<Return>', lambda e: self.get_current_select())
         self.file_top = ttk.Button(self,
-                                   text='File',
+                                   text=current_language_dict['File'],
                                    command=self.file_top_make_menu)
         self.file_menu = Menu(
             self,
@@ -237,27 +254,29 @@ class Root(Tk):
             activebackground=self.active_background_color,
             activeforeground=self.active_foreground_color,
             disabledforeground=self.disabled_foreground_color)
-        self.file_menu.add_command(label='Open',
+        self.file_menu.add_command(label=current_language_dict['Open'],
                                    command=self.openfile,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Save',
+        self.file_menu.add_command(label=current_language_dict['Save'],
                                    command=self.save_current_file,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Save As',
+        self.file_menu.add_command(label=current_language_dict['Save As'],
                                    command=self.save,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Settings',
+        self.file_menu.add_command(label=current_language_dict['Settings'],
                                    command=self.config_options,
                                    foreground=self.foreground_color)
-        self.file_menu.add_command(label='Import MIDI File',
-                                   command=self.read_midi_file,
-                                   foreground=self.foreground_color)
-        self.file_menu.add_command(label='Visualize Settings',
-                                   command=self.visualize_config,
-                                   foreground=self.foreground_color)
+        self.file_menu.add_command(
+            label=current_language_dict['Import MIDI File'],
+            command=self.read_midi_file,
+            foreground=self.foreground_color)
+        self.file_menu.add_command(
+            label=current_language_dict['Visualize Settings'],
+            command=self.visualize_config,
+            foreground=self.foreground_color)
         self.file_top.place(x=0, y=0)
         self.config_button = ttk.Button(self,
-                                        text='Settings',
+                                        text=current_language_dict['Settings'],
                                         command=self.config_options)
         self.config_button.place(x=320, y=0)
         grammar_highlight = config_dict['grammar_highlight']
@@ -272,7 +291,8 @@ class Root(Tk):
         self.bg_mode = config_dict['background_mode']
         self.turn_bg_mode = ttk.Button(
             self,
-            text='Light On' if self.bg_mode == 'black' else 'Light Off',
+            text=current_language_dict['Light On']
+            if self.bg_mode == 'black' else current_language_dict['Light Off'],
             command=self.change_background_color_mode)
         self.turn_bg_mode.place(x=240, y=0)
         self.change_background_color_mode(turn=False)
@@ -284,37 +304,40 @@ class Root(Tk):
                             activebackground=self.active_background_color,
                             activeforeground=self.active_foreground_color,
                             disabledforeground=self.disabled_foreground_color)
-        self.menubar.add_command(label='Cut',
+        self.menubar.add_command(label=current_language_dict['Cut'],
                                  command=self.cut,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Copy',
+        self.menubar.add_command(label=current_language_dict['Copy'],
                                  command=self.copy,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Paste',
+        self.menubar.add_command(label=current_language_dict['Paste'],
                                  command=self.paste,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Select All',
+        self.menubar.add_command(label=current_language_dict['Select All'],
                                  command=self.choose_all,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Undo',
+        self.menubar.add_command(label=current_language_dict['Undo'],
                                  command=self.inputs_undo,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Redo',
+        self.menubar.add_command(label=current_language_dict['Redo'],
                                  command=self.inputs_redo,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Play Selected Code',
-                                 command=self.play_select_text,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label='Play Selected Code Visually',
-                                 command=self.visualize_play_select_text,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label='Import MIDI File',
-                                 command=self.read_midi_file,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label='Stop Playing',
+        self.menubar.add_command(
+            label=current_language_dict['Play Selected Code'],
+            command=self.play_select_text,
+            foreground=self.foreground_color)
+        self.menubar.add_command(
+            label=current_language_dict['Play Selected Code Visually'],
+            command=self.visualize_play_select_text,
+            foreground=self.foreground_color)
+        self.menubar.add_command(
+            label=current_language_dict['Import MIDI File'],
+            command=self.read_midi_file,
+            foreground=self.foreground_color)
+        self.menubar.add_command(label=current_language_dict['Stop Playing'],
                                  command=self.stop_play_midi,
                                  foreground=self.foreground_color)
-        self.menubar.add_command(label='Search',
+        self.menubar.add_command(label=current_language_dict['Search'],
                                  command=self.search_words,
                                  foreground=self.foreground_color)
         self.inputs.bind("<Button-1>", lambda e: self.close_select())
@@ -358,9 +381,9 @@ class Root(Tk):
     def check_if_edited(self):
         current_text = self.inputs.get('1.0', 'end-1c')
         if current_text != self.last_save:
-            self.title('Musicpy Editor *')
+            self.title(f'Musicpy {current_language_dict["Editor"]} *')
         else:
-            self.title('Musicpy Editor')
+            self.title(f'Musicpy {current_language_dict["Editor"]}')
         self.after(100, self.check_if_edited)
 
     def close_window(self):
@@ -380,21 +403,22 @@ class Root(Tk):
                 f"+{ask_save_window_x + 300}+{ask_save_window_y + 200}")
             self.ask_save_window.ask_save_label = ttk.Label(
                 self.ask_save_window,
-                text='The file has changed, do you want to save the changes?')
+                text=current_language_dict[
+                    'The file has changed, do you want to save the changes?'])
             self.ask_save_window.ask_save_label.place(x=0, y=30)
             self.ask_save_window.save_button = ttk.Button(
                 self.ask_save_window,
-                text='Save',
+                text=current_language_dict['Save'],
                 command=self.save_and_quit,
                 style='New.TButton')
             self.ask_save_window.not_save_button = ttk.Button(
                 self.ask_save_window,
-                text='Discard',
+                text=current_language_dict['Discard'],
                 command=self.destroy_and_quit,
                 style='New.TButton')
             self.ask_save_window.cancel_button = ttk.Button(
                 self.ask_save_window,
-                text='Cancel',
+                text=current_language_dict['Cancel'],
                 command=self.ask_save_window.destroy,
                 style='New.TButton')
             self.ask_save_window.save_button.place(x=0, y=100)
@@ -453,7 +477,8 @@ class Root(Tk):
                                    fg='black',
                                    insertbackground='black')
             self.bg_mode = 'white'
-            self.turn_bg_mode.configure(text='Light Off')
+            self.turn_bg_mode.configure(
+                text=current_language_dict['Light Off'])
         elif self.bg_mode == 'black':
             self.inputs.configure(background=self.night_color,
                                   foreground='white',
@@ -462,13 +487,14 @@ class Root(Tk):
                                    foreground='white',
                                    insertbackground='white')
             self.bg_mode = 'black'
-            self.turn_bg_mode.configure(text='Light On')
+            self.turn_bg_mode.configure(text=current_language_dict['Light On'])
         if turn:
             config_dict['background_mode'] = self.bg_mode
 
     def openfile(self):
-        filename = filedialog.askopenfilename(title="Choose Files",
-                                              filetypes=(("All Files", "*"), ))
+        filename = filedialog.askopenfilename(
+            title=current_language_dict['Choose Files'],
+            filetypes=((current_language_dict['All files'], "*"), ))
         if filename:
             self.current_filename_path = filename
             try:
@@ -479,7 +505,9 @@ class Root(Tk):
                     self.last_save = self.inputs.get('1.0', 'end-1c')
             except:
                 self.inputs.delete('1.0', END)
-                self.inputs.insert(END, 'Not an available text file type')
+                self.inputs.insert(
+                    END,
+                    current_language_dict['Not an available text file type'])
 
     def file_top_make_menu(self):
         self.file_menu.tk_popup(x=self.winfo_pointerx(),
@@ -555,9 +583,10 @@ class Root(Tk):
         self.config_contents.insert(END, current_config_value)
 
     def choose_filename(self):
-        filename = filedialog.askopenfilename(parent=self.config_window,
-                                              title="Choose Filename",
-                                              filetypes=(("all files", "*"), ))
+        filename = filedialog.askopenfilename(
+            parent=self.config_window,
+            title=current_language_dict['Choose Filename'],
+            filetypes=((current_language_dict['All files'], "*"), ))
         self.config_contents.delete('1.0', END)
         self.config_contents.insert(END, filename)
         self.config_change()
@@ -565,7 +594,7 @@ class Root(Tk):
     def choose_directory(self):
         directory = filedialog.askdirectory(
             parent=self.config_window,
-            title="Choose Directory",
+            title=current_language_dict['Choose Directory'],
         )
         self.config_contents.delete('1.0', END)
         self.config_contents.insert(END, directory)
@@ -583,7 +612,7 @@ class Root(Tk):
         self.config_box_open = True
         self.config_window = Toplevel(self, bg=self.background_color)
         self.config_window.minsize(800, 650)
-        self.config_window.title('Settings')
+        self.config_window.title(current_language_dict['Settings'])
         self.config_window.protocol("WM_DELETE_WINDOW", self.close_config_box)
 
         global all_config_options
@@ -626,18 +655,19 @@ class Root(Tk):
         self.config_contents.place(x=350, y=50, width=400, height=200)
         self.config_window.choose_filename_button = ttk.Button(
             self.config_window,
-            text='Choose Filename',
+            text=current_language_dict['Choose Filename'],
             command=self.choose_filename,
             width=20)
         self.config_window.choose_directory_button = ttk.Button(
             self.config_window,
-            text='Choose Directory',
+            text=current_language_dict['Choose Directory'],
             command=self.choose_directory,
             width=20)
         self.config_window.choose_filename_button.place(x=0, y=250)
         self.config_window.choose_directory_button.place(x=0, y=290)
         self.config_window.search_text = ttk.Label(
-            self.config_window, text='Search config options')
+            self.config_window,
+            text=current_language_dict['Search config options'])
         self.config_window.search_text.place(x=30, y=370)
         self.config_search_contents = StringVar()
         self.config_search_contents.trace_add('write', self.search_config)
@@ -647,12 +677,12 @@ class Root(Tk):
         self.config_window.search_inds = 0
         self.config_window.up_button = ttk.Button(
             self.config_window,
-            text='Previous',
+            text=current_language_dict['Previous'],
             command=lambda: self.change_search_inds(-1),
             width=8)
         self.config_window.down_button = ttk.Button(
             self.config_window,
-            text='Next',
+            text=current_language_dict['Next'],
             command=lambda: self.change_search_inds(1),
             width=8)
         self.config_window.up_button.place(x=170, y=400)
@@ -670,14 +700,16 @@ class Root(Tk):
         self.config_window.choose_bool1.place(x=150, y=270)
         self.config_window.choose_bool2.place(x=250, y=270)
         save_button = ttk.Button(self.config_window,
-                                 text='Save',
+                                 text=current_language_dict['Save'],
                                  command=self.save_config)
         save_button.place(x=30, y=330)
-        self.saved_label = ttk.Label(self.config_window,
-                                     text='Successfully saved')
-        self.choose_font = ttk.Button(self.config_window,
-                                      text='Choose Font',
-                                      command=self.get_font)
+        self.saved_label = ttk.Label(
+            self.config_window,
+            text=current_language_dict['Successfully saved'])
+        self.choose_font = ttk.Button(
+            self.config_window,
+            text=current_language_dict['Choose Font'],
+            command=self.get_font)
         self.choose_font.place(x=230, y=460)
         self.whole_fonts = list(font.families())
         self.whole_fonts.sort(
@@ -702,7 +734,7 @@ class Root(Tk):
         self.change_sort_button.place(x=150, y=330, width=180)
 
         self.reload_button = ttk.Button(self.config_window,
-                                        text='Reload',
+                                        text=current_language_dict['Reload'],
                                         command=self.reload)
         self.reload_button.place(x=230, y=510)
 
@@ -764,9 +796,10 @@ class Root(Tk):
             self.reload_config()
 
     def search_path(self, obj):
-        filename = filedialog.askopenfilename(parent=self.config_window,
-                                              title="Choose Files",
-                                              filetypes=(("All Files", "*"), ))
+        filename = filedialog.askopenfilename(
+            parent=self.config_window,
+            title=current_language_dict['Choose Files'],
+            filetypes=((current_language_dict['All files'], "*"), ))
         if filename:
             obj.delete(0, END)
             obj.insert(END, filename)
@@ -825,14 +858,14 @@ class Root(Tk):
                     f.write(self.last_save)
             else:
                 self.save()
-            self.title('Musicpy Editor')
+            self.title(f'Musicpy {current_language_dict["Editor"]}')
 
     def save(self):
-        filename = filedialog.asksaveasfilename(title="Save Input Text",
-                                                filetypes=(("All Files",
-                                                            "*"), ),
-                                                defaultextension=".txt",
-                                                initialfile='Untitled.txt')
+        filename = filedialog.asksaveasfilename(
+            title=current_language_dict["Save Input Text"],
+            filetypes=((current_language_dict['All files'], "*"), ),
+            defaultextension=".txt",
+            initialfile='Untitled.txt')
         if filename:
             self.current_filename_path = filename
             current_text = self.inputs.get('1.0', 'end-1c')
@@ -1108,7 +1141,8 @@ class Root(Tk):
                     except:
                         pass
         except:
-            self.outputs.insert(END, 'The codes are invalid\n')
+            self.outputs.insert(
+                END, current_language_dict['The codes are invalid\n'])
             self.outputs.insert(END, traceback.format_exc())
 
     def runs_2(self):
@@ -1243,7 +1277,9 @@ class Root(Tk):
             exec(f"play({selected_text})")
         except:
             self.outputs.delete('1.0', END)
-            self.outputs.insert(END, 'The codes selected cannot be played')
+            self.outputs.insert(
+                END,
+                current_language_dict['The codes selected cannot be played'])
 
     def visualize_play_select_text(self):
         try:
@@ -1251,14 +1287,17 @@ class Root(Tk):
             exec(f"write({selected_text}, name='temp.mid')")
         except:
             self.outputs.delete('1.0', END)
-            self.outputs.insert(END, 'The codes selected cannot be played')
+            self.outputs.insert(
+                END,
+                current_language_dict['The codes selected cannot be played'])
             return
         visualize.start()
 
     def read_midi_file(self):
-        filename = filedialog.askopenfilename(title="Choose MIDI File",
-                                              filetypes=(("MIDI File", ".mid"),
-                                                         ("All Files", "*")))
+        filename = filedialog.askopenfilename(
+            title=current_language_dict["Choose MIDI File"],
+            filetypes=((current_language_dict["MIDI File"], ".mid"),
+                       (current_language_dict['All files'], "*")))
         if filename:
             self.inputs.insert(END, f"new_midi_file = read(\"{filename}\")\n")
 
@@ -1282,11 +1321,12 @@ class Root(Tk):
             return
         self.search_box = Toplevel(self, bg=self.background_color)
         self.search_box.protocol("WM_DELETE_WINDOW", self.close_search_box)
-        self.search_box.title('Search')
+        self.search_box.title(current_language_dict['Search'])
         self.search_box.minsize(300, 200)
         self.search_box.geometry('250x150+350+300')
         self.search_text = ttk.Label(
-            self.search_box, text='Please input text you want to search')
+            self.search_box,
+            text=current_language_dict['Please input text you want to search'])
         self.search_text.place(x=0, y=0)
         self.search_contents = StringVar()
         self.search_contents.trace_add('write', self.search)
@@ -1301,11 +1341,11 @@ class Root(Tk):
         self.inputs.tag_configure('highlight_select',
                                   background=self.search_highlight_color[1])
         self.search_up = ttk.Button(self.search_box,
-                                    text='Previous',
+                                    text=current_language_dict['Previous'],
                                     command=lambda: self.change_search_ind(-1))
         self.search_down = ttk.Button(
             self.search_box,
-            text='Next',
+            text=current_language_dict['Next'],
             command=lambda: self.change_search_ind(1))
         self.search_up.place(x=0, y=60)
         self.search_down.place(x=100, y=60)
@@ -1314,7 +1354,7 @@ class Root(Tk):
         self.check_case_sensitive.set(0)
         self.case_sensitive_box = ttk.Checkbutton(
             self.search_box,
-            text='Case sensitive',
+            text=current_language_dict['Case sensitive'],
             variable=self.check_case_sensitive)
         self.case_sensitive_box.place(x=170, y=30)
 

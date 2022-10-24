@@ -68,5 +68,6 @@
     "disabled_foreground_color": "white",
     "highlight_background": "ivory2",
     "highlight_color": "ivory2",
-    "highlight_thickness": 2
+    "highlight_thickness": 2,
+    "language": "English"
 }
