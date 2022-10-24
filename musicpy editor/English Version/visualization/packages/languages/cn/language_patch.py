@@ -1,5 +1,4 @@
 from musicpy import *
-import random
 from difflib import SequenceMatcher
 
 # database
@@ -25,7 +24,7 @@ INTERVAL = {
     21: '大十三度'
 }
 
-chordTypes = match({
+chordTypes = database.match({
     ('大三和弦', 'major', 'M', 'maj', 'majorthird'): ((4, 7), ),
     ('小三和弦', 'minor', 'm', 'minorthird', 'min', '-'): ((3, 7), ),
     ('大七和弦', 'maj7', 'M7', 'major7th', 'majorseventh'): ((4, 7, 11), ),
@@ -151,8 +150,8 @@ def omit_from(a, b, showls=False, alter_notes_show_degree=False):
         b_first_note = b[0].degree
         omitnotes_degree = []
         for j in omitnotes:
-            current = reverse_degree_match[b[b_notes.index(j)].degree -
-                                           b_first_note]
+            current = database.reverse_degree_match[b[b_notes.index(j)].degree
+                                                    - b_first_note]
             if current == 'not found':
                 omitnotes_degree.append(j)
             else:
@@ -202,7 +201,7 @@ def change_from(a,
             b_first_note = b[0].degree
             for i in range(len(changes)):
                 note_name, note_change = changes[i]
-                current_degree = reverse_degree_match[
+                current_degree = database.reverse_degree_match[
                     bnotes[bnames.index(note_name)] - b_first_note]
                 if current_degree == 'not found':
                     current_degree = note_name
@@ -853,6 +852,263 @@ def getchord(start,
 
 chd = getchord
 
+
+def trans(obj, pitch=4, duration=0.25, interval=None):
+    obj = obj.replace(' ', '')
+    if obj.count('/') > 1:
+        current_parts = obj.split('/')
+        current_parts = [int(i) if i.isdigit() else i for i in current_parts]
+        result = trans(current_parts[0], pitch, duration, interval)
+        for each in current_parts[1:]:
+            if each in database.standard:
+                each = database.standard_dict.get(each, each)
+            elif not isinstance(each, int):
+                each = trans(each, pitch, duration, interval)
+            result /= each
+        return result
+    if obj in database.standard:
+        return chd(obj,
+                   'M',
+                   pitch=pitch,
+                   duration=duration,
+                   intervals=interval)
+    if '/' not in obj:
+        check_structure = obj.split(',')
+        check_structure_len = len(check_structure)
+        if check_structure_len > 1:
+            return trans(check_structure[0], pitch)(','.join(
+                check_structure[1:])) % (duration, interval)
+        N = len(obj)
+        if N == 2:
+            first = obj[0]
+            types = obj[1]
+            if first in database.standard and types in chordTypes:
+                return chd(first,
+                           types,
+                           pitch=pitch,
+                           duration=duration,
+                           intervals=interval)
+        elif N > 2:
+            first_two = obj[:2]
+            type1 = obj[2:]
+            if first_two in database.standard and type1 in chordTypes:
+                return chd(first_two,
+                           type1,
+                           pitch=pitch,
+                           duration=duration,
+                           intervals=interval)
+            first_one = obj[0]
+            type2 = obj[1:]
+            if first_one in database.standard and type2 in chordTypes:
+                return chd(first_one,
+                           type2,
+                           pitch=pitch,
+                           duration=duration,
+                           intervals=interval)
+    else:
+        parts = obj.split('/')
+        part1, part2 = parts[0], '/'.join(parts[1:])
+        first_chord = trans(part1, pitch)
+        if isinstance(first_chord, chord):
+            if part2.isdigit() or (part2[0] == '-' and part2[1:].isdigit()):
+                return (first_chord / int(part2)) % (duration, interval)
+            elif part2[-1] == '!' and part2[:-1].isdigit():
+                return (first_chord @ int(part2[:-1])) % (duration, interval)
+            elif part2 in database.standard:
+                if part2 not in database.standard2:
+                    part2 = database.standard_dict[part2]
+                first_chord_notenames = first_chord.names()
+                if part2 in first_chord_notenames and part2 != first_chord_notenames[
+                        0]:
+                    return (first_chord.inversion(
+                        first_chord_notenames.index(part2))) % (duration,
+                                                                interval)
+                return chord([part2] + first_chord_notenames,
+                             rootpitch=pitch,
+                             duration=duration,
+                             interval=interval)
+            else:
+                second_chord = trans(part2, pitch)
+                if isinstance(second_chord, chord):
+                    return chord(second_chord.names() + first_chord.names(),
+                                 rootpitch=pitch,
+                                 duration=duration,
+                                 interval=interval)
+    raise ValueError(
+        'not a valid chord representation or chord types not in database')
+
+
+C = trans
+
+
+def info(self, alter_notes_show_degree=True, get_dict=False, **detect_args):
+    chord_type = detect(self,
+                        alter_notes_show_degree=alter_notes_show_degree,
+                        **detect_args)
+    if chord_type is None:
+        return
+    standard_notes = self.standardize()
+    if len(standard_notes) == 1:
+        if get_dict:
+            return {
+                '类型': '音符',
+                '音符名称': str(standard_notes[0]),
+                '完整名称': chord_type
+            }
+        else:
+            return f'音符名称: {standard_notes[0]}'
+    elif len(standard_notes) == 2:
+        if get_dict:
+            return {
+                '类型': '音程',
+                '音程名称': chord_type.split('和 ')[1],
+                '根音': str(standard_notes[0]),
+                '完整名称': chord_type
+            }
+        else:
+            return f'音程名称: {chord_type.split("和 ")[1]}\n根音: {standard_notes[0]}'
+    original_chord_type = copy(chord_type)
+    other_msg = {'省略音': None, '变化音': None, '和弦外音的最低音': None, '和弦声位': None}
+    has_split = False
+    if '/' in chord_type:
+        has_split = True
+        if ']/[' in chord_type:
+            chord_speciality = '复合和弦'
+        else:
+            chord_speciality = '转位和弦'
+    elif '排序' in chord_type:
+        chord_speciality = '和弦声位'
+    else:
+        alter_notes = chord_type.split(' ')
+        if len(alter_notes) > 1 and alter_notes[1][0] in ['#', 'b']:
+            chord_speciality = '变化音和弦'
+        else:
+            chord_speciality = '原位和弦'
+    if '省略' in chord_type:
+        if chord_speciality != '复合和弦':
+            other_msg['省略音'] = [
+                int(i) if i.isdigit() else i
+                for i in chord_type.split('/', 1)[0].split('排序', 1)[0].strip(
+                    '[]').split('省略', 1)[1].replace(' ', '').split(',')
+            ]
+    if '排序' in chord_type:
+        other_msg['和弦声位'] = [
+            int(i) for i in chord_type.split('/', 1)[0].strip('[]').split(
+                '排序', 1)[1].replace(' ', '').strip('[]').split(',')
+        ]
+    try:
+        alter_notes = chord_type.split('/', 1)[0].split(
+            '排序', 1)[0].strip('[]').split(' ', 1)[1].replace(' ',
+                                                             '').split(',')
+    except:
+        alter_notes = None
+    if alter_notes:
+        other_msg['变化音'] = []
+        for each in alter_notes:
+            if each and each[0] in ['#', 'b']:
+                other_msg['变化音'].append(each)
+        if not other_msg['变化音']:
+            other_msg['变化音'] = None
+    if has_split:
+        inversion_split = chord_type.split('/')
+        first_part = inversion_split[0].replace(',', '')
+        if first_part[0] == '[':
+            current_type = first_part[1:-1].split(' ')
+        else:
+            current_type = first_part.split(' ')
+        current_type = [i for i in current_type if i]
+        if len(current_type) > 1 and current_type[1][0] in ['#', 'b']:
+            chord_types_root = ','.join(current_type)
+            if len(inversion_split) > 1:
+                chord_type = '/'.join([chord_types_root, inversion_split[1]])
+        else:
+            chord_types_root = current_type[0]
+    else:
+        chord_types_root = chord_type.split(' ')[0]
+    note_names = self.names()
+    note_names.sort(key=lambda s: len(s), reverse=True)
+    for each in note_names:
+        each_standard = f"{each[0].upper()}{''.join(each[1:])}"
+        if each_standard in chord_types_root:
+            root_note = each
+            break
+        elif each_standard in database.standard_dict and database.standard_dict[
+                each_standard] in chord_types_root:
+            root_note = each
+            break
+    if has_split:
+        try:
+            inversion_msg = inversion_from(C(chord_type),
+                                           C(chord_types_root),
+                                           num=True)
+            if 'could not get chord' in inversion_msg:
+                if inversion_split[1][0] == '[':
+                    chord_type = original_chord_type
+                    chord_types_root = chord_type
+                else:
+                    first_part, second_part = chord_type.split('/', 1)
+                    if first_part[0] == '[':
+                        first_part = first_part[1:-1]
+                    chord_speciality = self._get_chord_speciality_helper(
+                        first_part)
+                    other_msg['和弦外音的最低音'] = second_part
+        except:
+            import traceback
+            if '省略' in first_part and first_part[0] != '[':
+                temp_ind = first_part.index(' ')
+                current_chord_types_root = first_part[:
+                                                      temp_ind] + ',' + first_part[
+                                                          temp_ind:]
+            else:
+                current_chord_types_root = chord_types_root
+            try:
+                inversion_msg = inversion_from(self,
+                                               C(current_chord_types_root),
+                                               num=True)
+                if 'could not get chord' in inversion_msg:
+                    if inversion_split[1][0] == '[':
+                        chord_type = original_chord_type
+                        chord_types_root = chord_type
+                    else:
+                        first_part, second_part = chord_type.split('/', 1)
+                        if first_part[0] == '[':
+                            first_part = first_part[1:-1]
+                        chord_speciality = self._get_chord_speciality_helper(
+                            first_part)
+                        other_msg['和弦外音的最低音'] = second_part
+            except:
+                chord_type = original_chord_type
+                chord_types_root = chord_type
+                if chord_speciality == '转位和弦':
+                    inversion_msg = None
+    if other_msg['变化音']:
+        chord_types_root = chord_types_root.split(',')[0]
+        chord_type = original_chord_type
+    root_note = database.standard_dict.get(root_note, root_note)
+    if chord_speciality == '复合和弦' or (chord_speciality == '转位和弦'
+                                      and inversion_msg is None):
+        chord_type_name = chord_type
+    else:
+        chord_type_name = chord_types_root[len(root_note):]
+    if get_dict:
+        return {
+            '类型': '和弦',
+            '和弦名称': chord_type,
+            '原位': chord_types_root,
+            '根音': root_note,
+            '和弦类型': chord_type_name,
+            '和弦性质': chord_speciality,
+            '转位': inversion_msg if chord_speciality == '转位和弦' else None,
+            '其他': other_msg
+        }
+    else:
+        other_msg_str = '\n'.join(
+            [f'{i}: {j}' for i, j in other_msg.items() if j])
+        return f"和弦名称: {chord_type}\n原位和弦: {chord_types_root}\n根音: {root_note}\n和弦类型: {chord_type_name}\n和弦性质: {chord_speciality}" + (
+            f"\n转位: {inversion_msg}" if chord_speciality == '转位和弦' else
+            '') + (f'\n{other_msg_str}' if other_msg_str else '')
+
+
 # browse
 
 browse_language_dict = {
@@ -865,7 +1121,8 @@ browse_language_dict = {
     'trackind': 'MIDI轨道序号',
     'from': '从',
     'to': '到',
-    'melody': '去除主旋律，只看和弦部分',
+    'show melody': '只显示主旋律',
+    'show chord': '只显示和弦',
     'merge': '合并所有音轨',
     'file name': '文件名'
 }

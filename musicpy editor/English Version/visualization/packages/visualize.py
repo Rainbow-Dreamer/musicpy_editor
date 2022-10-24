@@ -13,6 +13,7 @@ import json_module
 from change_settings import settings_window
 from copy import deepcopy as copy
 import importlib
+from threading import Thread
 
 piano_config_path = 'visualization/packages/piano_config.json'
 piano_config = json_module.json_module(piano_config_path)
@@ -569,7 +570,8 @@ class piano_engine:
                      'pause_key_clear_notes')
 
     def midi_file_play(self, dt):
-        pygame.mixer.music.play()
+        current_thread = Thread(target=pygame.mixer.music.play)
+        current_thread.start()
 
     def piano_key_reset(self, dt, each):
         current_piano_window.piano_keys[

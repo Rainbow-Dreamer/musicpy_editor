@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+musicpy
 temp.mid
 
 # C extensions
