@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 musicpy
 temp.mid
+plans.txt
 
 # C extensions
 *.so

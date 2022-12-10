@@ -17,7 +17,7 @@ try:
     import PIL.Image, PIL.ImageTk
     from yapf.yapflib.yapf_api import FormatCode
     import musicpy
-    from visualization.packages.change_settings import settings_window
+    from visualization.packages.change_settings import config_window
     sys.path.append('visualization/packages')
     from visualization.packages import visualize
 except ImportError:
@@ -442,7 +442,7 @@ class Root(Tk):
         if self.visualize_config_box_open:
             return
         self.visualize_config_box_open = True
-        current_config_window = settings_window(piano_config_path, root=self)
+        current_config_window = config_window(config_path=piano_config_path)
         current_config_window.mainloop()
 
     def get_current_line_column(self):
@@ -1407,9 +1407,10 @@ class Root(Tk):
         self.menubar.tk_popup(event.x_root, event.y_root)
 
 
-function_names = list(
-    set(musicpy_vars + list(locals().keys()) + list(globals().keys())))
-root = Root()
-root.focus_force()
-root.inputs.focus_set()
-root.mainloop()
+if __name__ == '__main__':
+    function_names = list(
+        set(musicpy_vars + list(locals().keys()) + list(globals().keys())))
+    root = Root()
+    root.focus_force()
+    root.inputs.focus_set()
+    root.mainloop()

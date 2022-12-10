@@ -1,10 +1,14 @@
-from tkinter import *
-from tkinter import ttk
-from tkinter import filedialog
 from ast import literal_eval
-import os
-from copy import deepcopy as copy
+import sys, os
+from PyQt5 import QtGui, QtWidgets, QtCore
 import json
+from copy import deepcopy as copy
+
+
+def set_font(font, dpi):
+    if dpi != 96.0:
+        font.setPointSize(font.pointSize() * (96.0 / dpi))
+    return font
 
 
 def save_json(config, config_path, whole_config=None):
@@ -16,84 +20,150 @@ def save_json(config, config_path, whole_config=None):
                   ensure_ascii=False)
 
 
-class settings_window(Tk):
+def change_parameter(var, new, config_path, whole_config=None):
+    if os.path.exists(config_path):
+        with open(config_path, encoding='utf-8') as f:
+            current_config = json.load(f)
+        if var in current_config:
+            current_config[var] = new
+            save_json(current_config, config_path, whole_config)
 
-    def __init__(self, config_path='', root=None):
-        super(settings_window, self).__init__()
+
+class Dialog(QtWidgets.QMainWindow):
+
+    def __init__(self, caption, directory, filter, mode=0):
+        super().__init__()
+        if mode == 0:
+            self.filename = QtWidgets.QFileDialog.getOpenFileName(
+                self, caption=caption, directory=directory, filter=filter)
+        elif mode == 1:
+            self.directory = QtWidgets.QFileDialog.getExistingDirectory(
+                self, caption=caption, directory=directory)
+        elif mode == 2:
+            self.filename = QtWidgets.QFileDialog.getSaveFileName(
+                self, caption=caption, directory=directory, filter=filter)
+
+
+class config_window(QtWidgets.QMainWindow):
+
+    def __init__(self, dpi=None, config_path=''):
+        super().__init__()
+        if sys.platform == 'win32':
+            self.setWindowIcon(QtGui.QIcon('resources/piano.ico'))
+        elif sys.platform == 'linux':
+            self.setWindowIcon(QtGui.QIcon('resources/piano_icon.png'))
+        elif sys.platform == 'darwin':
+            self.setWindowIcon(QtGui.QIcon('resources/piano_icon.icns'))
         self.config_path = config_path
-        self.root = root
         self.whole_config = None
         self.current_config = self.whole_config
         self.current_path = []
+        self.dpi = dpi
         self.sort_mode = 0
         self.search_inds = 0
         self.search_inds_list = []
 
-        self.title("Settings")
-        self.minsize(800, 600)
-        self.protocol("WM_DELETE_WINDOW", self.close_settings_box)
-        self.config_options_bar = Scrollbar(self)
-        self.config_options_bar.place(x=235, y=120, height=170, anchor=CENTER)
-        self.choose_config_options = Listbox(
-            self, yscrollcommand=self.config_options_bar.set)
-        self.choose_config_options.bind(
-            '<<ListboxSelect>>', lambda e: self.show_current_config_options())
-        self.choose_config_options.place(x=0, y=30, width=220)
-        self.config_options_bar.config(
-            command=self.choose_config_options.yview)
-        self.config_name = ttk.Label(self, text='')
-        self.config_name.place(x=300, y=20)
-        self.config_contents = Text(self,
-                                    undo=True,
-                                    autoseparators=True,
-                                    maxundo=-1)
-        self.config_contents.bind('<KeyRelease>',
-                                  lambda e: self.config_change())
-        self.config_contents.place(x=350, y=50, width=400, height=400)
-        self.choose_filename_button = ttk.Button(self,
-                                                 text='choose filename',
-                                                 command=self.choose_filename)
-        self.choose_directory_button = ttk.Button(
-            self, text='choose directory', command=self.choose_directory)
-        self.choose_filename_button.place(x=0, y=250)
-        self.choose_directory_button.place(x=0, y=300)
-        self.save = ttk.Button(self, text="save", command=self.save_current)
-        self.save.place(x=0, y=400)
-        self.saved_text = ttk.Label(self, text='saved')
-        self.search_text = ttk.Label(self, text='search for config options')
-        self.search_text.place(x=0, y=450)
-        self.search_contents = StringVar(self)
-        self.search_contents.trace_add('write', self.search)
-        self.search_entry = Entry(self, textvariable=self.search_contents)
-        self.search_entry.place(x=0, y=480)
-        self.up_button = ttk.Button(
-            self,
-            text='Previous',
-            command=lambda: self.change_search_inds(-1),
-            width=8)
-        self.down_button = ttk.Button(
-            self,
-            text='Next',
-            command=lambda: self.change_search_inds(1),
-            width=8)
-        self.up_button.place(x=170, y=480)
-        self.down_button.place(x=250, y=480)
-        self.choose_bool1 = ttk.Button(
-            self, text='True', command=lambda: self.insert_bool('True'))
-        self.choose_bool2 = ttk.Button(
-            self, text='False', command=lambda: self.insert_bool('False'))
-        self.choose_bool1.place(x=135, y=250)
-        self.choose_bool2.place(x=245, y=250)
-        self.change_sort_button = ttk.Button(
-            self, text="sort in order of appearance", command=self.change_sort)
-        self.change_sort_button.place(x=150, y=400)
-        self.reload_button = ttk.Button(self,
-                                        text='Reload',
-                                        command=self.reload)
-        self.reload_button.place(x=350, y=480)
+        self.setWindowTitle("Settings")
+        self.setMinimumSize(800, 600)
+        self.setFont(set_font(QtGui.QFont('Consolas', 10), self.dpi))
+
+        self.choose_config_file_button = QtWidgets.QPushButton(
+            self, text='choose json file')
+        self.choose_config_file_button.clicked.connect(self.choose_json_file)
+        self.choose_config_file_button.setFixedWidth(150)
+        self.choose_config_file_button.move(0, 10)
+
+        self.choose_config_options = QtWidgets.QListWidget(self)
+        self.choose_config_options.clicked.connect(
+            self.show_current_config_options)
+        self.choose_config_options.resize(250, 200)
+        self.choose_config_options.move(0, 50)
+        self.config_name = QtWidgets.QLabel(self, text='')
+        self.config_name.setFixedWidth(300)
+        self.config_name.move(365, 20)
+        self.config_contents = QtWidgets.QPlainTextEdit(self)
+        self.config_contents.setFont(
+            set_font(QtGui.QFont('Consolas', 10), self.dpi))
+        self.config_contents.textChanged.connect(self.config_change)
+        self.config_contents.resize(400, 400)
+        self.config_contents.move(365, 50)
+
+        self.choose_filename_button = QtWidgets.QPushButton(
+            self, text='choose filename')
+        self.choose_filename_button.clicked.connect(self.choose_filename)
+        self.choose_filename_button.setFixedWidth(150)
+        self.choose_filename_button.move(0, 270)
+        self.choose_directory_button = QtWidgets.QPushButton(
+            self, text='choose directory')
+        self.choose_directory_button.clicked.connect(self.choose_directory)
+        self.choose_directory_button.setFixedWidth(150)
+        self.choose_directory_button.move(0, 320)
+
+        self.save = QtWidgets.QPushButton(self, text="save")
+        self.save.clicked.connect(self.save_current)
+        self.save.move(0, 400)
+        self.save_shortcut = QtWidgets.QShortcut('Ctrl+S', self)
+        self.save_shortcut.activated.connect(self.save_current)
+        self.saved_text = QtWidgets.QLabel(self, text='saved')
+        self.saved_text.move(50, 530)
+        self.saved_text.hide()
+
+        self.search_text = QtWidgets.QLabel(self,
+                                            text='search for config options')
+        self.search_text.setFixedWidth(200)
+        self.search_text.move(0, 450)
+        self.search_entry = QtWidgets.QLineEdit(self)
+        self.search_entry.setFixedWidth(200)
+        self.search_entry.textChanged.connect(self.search)
+        self.search_entry.move(0, 480)
+
+        self.up_button = QtWidgets.QPushButton(self, text='Previous')
+        self.up_button.clicked.connect(lambda: self.change_search_inds(-1))
+        self.down_button = QtWidgets.QPushButton(self, text='Next')
+        self.down_button.clicked.connect(lambda: self.change_search_inds(1))
+        self.up_button.move(220, 480)
+        self.down_button.move(350, 480)
+
+        self.export_button = QtWidgets.QPushButton(self, text='Export')
+        self.export_button.clicked.connect(self.export_json)
+        self.export_button.move(480, 480)
+
+        self.choose_bool1 = QtWidgets.QPushButton(self, text='True')
+        self.choose_bool1.clicked.connect(lambda: self.insert_bool('True'))
+        self.choose_bool1.setFixedWidth(80)
+        self.choose_bool2 = QtWidgets.QPushButton(self, text='False')
+        self.choose_bool2.clicked.connect(lambda: self.insert_bool('False'))
+        self.choose_bool2.setFixedWidth(80)
+        self.choose_bool1.move(165, 320)
+        self.choose_bool2.move(260, 320)
+
+        self.back_button = QtWidgets.QPushButton(self, text='Back')
+        self.back_button.clicked.connect(self.back_func)
+        self.back_button.setFixedWidth(80)
+        self.forward_button = QtWidgets.QPushButton(self, text='Forward')
+        self.forward_button.clicked.connect(self.forward_func)
+        self.forward_button.setFixedWidth(80)
+        self.back_button.move(165, 270)
+        self.forward_button.move(260, 270)
+
+        self.change_sort_button = QtWidgets.QPushButton(
+            self, text="sort in alphabetical order")
+        self.change_sort_button.clicked.connect(self.change_sort)
+        self.change_sort_button.setFixedWidth(220)
+        self.change_sort_button.setFont(
+            set_font(QtGui.QFont('Consolas', 10), self.dpi))
+        self.change_sort_button.move(120, 400)
+
+        self.edit_list_button = QtWidgets.QPushButton(self,
+                                                      text='Edit json in list')
+        self.edit_list_button.setFixedWidth(150)
+        self.edit_list_button.clicked.connect(self.edit_json_in_list)
+        self.edit_list_button.move(180, 10)
 
         if self.config_path:
             self.load_current_file()
+
+        self.show()
 
     def load_current_file(self):
         if os.path.exists(self.config_path):
@@ -105,68 +175,180 @@ class settings_window(Tk):
             self.current_config_alpha_keys = list(
                 sorted(self.current_config_keys, key=lambda s: s.lower()))
             self.options_num = len(self.whole_config)
-            self.config_contents.delete('1.0', END)
+            self.config_contents.clear()
             self.set_sort()
 
-    def close_settings_box(self):
-        try:
-            self.root.open_settings = False
-        except:
-            pass
-        self.destroy()
+    def reload_current_file(self):
+        if os.path.exists(self.config_path):
+            with open(self.config_path, encoding='utf-8') as f:
+                self.whole_config = json.load(f)
 
-    def reload(self):
-        try:
-            self.root.destroy()
-        except:
-            pass
-        self.destroy()
-        os.startfile('easy sampler.exe')
+    def load_current_config(self):
+        self.current_config_original = copy(self.current_config)
+        self.current_config_keys = list(self.current_config.keys())
+        self.current_config_alpha_keys = list(
+            sorted(self.current_config_keys, key=lambda s: s.lower()))
+        self.options_num = len(self.current_config)
+        self.config_contents.clear()
+        self.set_sort()
+
+    def choose_json_file(self):
+        last_path = ''
+        if os.path.exists('last_path.txt'):
+            with open('last_path.txt', encoding='utf-8') as f:
+                last_path = f.read()
+        filename = Dialog(
+            caption='choose json file',
+            directory=last_path,
+            filter='json files (*.json);all files (*)').filename[0]
+        if filename:
+            current_path = os.path.dirname(filename)
+            if current_path != last_path:
+                with open('last_path.txt', 'w', encoding='utf-8') as f:
+                    f.write(current_path)
+            self.config_path = filename
+            try:
+                self.load_current_file()
+            except:
+                pass
+
+    def export_json(self):
+        if self.whole_config:
+            last_path = ''
+            if os.path.exists('last_path.txt'):
+                with open('last_path.txt', encoding='utf-8') as f:
+                    last_path = f.read()
+            filename = Dialog(caption='choose save path',
+                              directory=self.config_path,
+                              filter='all files (*)',
+                              mode=2).filename[0]
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(self.whole_config,
+                              f,
+                              indent=4,
+                              separators=(',', ': '),
+                              ensure_ascii=False)
+
+    def forward_func(self, args, ind=None):
+        if self.current_config:
+            current_selected_items = self.choose_config_options.selectedItems()
+            if current_selected_items:
+                current_config = current_selected_items[0].text()
+                self.config_name.setText(current_config)
+                current_config_value = self.current_config[current_config]
+                if current_config_value:
+                    if isinstance(current_config_value, dict):
+                        self.current_path.append(current_config)
+                        self.current_config = current_config_value
+                        self.load_current_config()
+                    elif isinstance(current_config_value, list):
+                        if type(ind) != int:
+                            ind = 0
+                        if isinstance(current_config_value[ind], dict):
+                            self.current_path.append(current_config)
+                            self.current_path.append(ind)
+                            self.current_config = current_config_value[ind]
+                            self.load_current_config()
+
+    def back_func(self):
+        if self.current_config:
+            if self.current_path:
+                current_key = self.current_path.pop()
+                if not self.current_path:
+                    current = self.whole_config
+                else:
+                    current = self.whole_config[self.current_path[0]]
+                    for each in self.current_path[1:]:
+                        current = current[each]
+                    while isinstance(current, list):
+                        current_key = self.current_path.pop()
+                        if not self.current_path:
+                            current = self.whole_config
+                        else:
+                            current = self.whole_config[self.current_path[0]]
+                            for each in self.current_path[1:]:
+                                current = current[each]
+                self.current_config = current
+                self.load_current_config()
+                if self.sort_mode == 0:
+                    current_ind = self.current_config_alpha_keys.index(
+                        current_key)
+                elif self.sort_mode == 1:
+                    current_ind = self.current_config_keys.index(current_key)
+                self.choose_config_options.setCurrentRow(current_ind)
+                self.show_current_config_options()
+
+    def load_current_path(self):
+        if self.whole_config:
+            if not self.current_path:
+                current = self.whole_config
+            else:
+                current = self.whole_config[self.current_path[0]]
+                for each in self.current_path[1:]:
+                    current = current[each]
+            self.current_config = current
+
+    def edit_json_in_list(self):
+        if self.current_config:
+            current_selected_items = self.choose_config_options.selectedItems()
+            if current_selected_items:
+                current_config = current_selected_items[0].text()
+                self.config_name.setText(current_config)
+                current_config_value = self.current_config[current_config]
+                if isinstance(current_config_value, list):
+                    current_json = [
+                        i for i in current_config_value if isinstance(i, dict)
+                    ]
+                    if current_json:
+                        current_pos = QtGui.QCursor.pos()
+                        current_menu = QtWidgets.QMenu(self)
+                        for i, each in enumerate(current_json):
+                            current = current_menu.addAction(f'json {i+1}')
+                            current.triggered.connect(
+                                lambda args, i=i: self.forward_func(args, i))
+                        current_menu.exec(current_pos)
 
     def change_sort(self):
         if self.current_config:
             if self.sort_mode == 0:
                 self.sort_mode = 1
-                self.change_sort_button.configure(
-                    text='sort in order of appearance')
-                self.choose_config_options.delete(0, END)
+                self.change_sort_button.setText('sort in order of appearance')
+                self.choose_config_options.clear()
                 for k, each in enumerate(self.current_config_keys):
-                    self.choose_config_options.insert(k, each)
+                    self.choose_config_options.insertItem(k, each)
             else:
                 self.sort_mode = 0
-                self.change_sort_button.configure(
-                    text='sort in alphabetical order')
-                self.choose_config_options.delete(0, END)
+                self.change_sort_button.setText('sort in alphabetical order')
+                self.choose_config_options.clear()
                 for k, each in enumerate(self.current_config_alpha_keys):
-                    self.choose_config_options.insert(k, each)
+                    self.choose_config_options.insertItem(k, each)
             self.search()
 
     def set_sort(self):
         if self.current_config:
             if self.sort_mode == 1:
-                self.change_sort_button.configure(
-                    text='sort in order of appearance')
-                self.choose_config_options.delete(0, END)
+                self.change_sort_button.setText('sort in order of appearance')
+                self.choose_config_options.clear()
                 for k, each in enumerate(self.current_config_keys):
-                    self.choose_config_options.insert(k, each)
+                    self.choose_config_options.insertItem(k, each)
             else:
-                self.change_sort_button.configure(
-                    text='sort in alphabetical order')
-                self.config_contents.delete('1.0', END)
+                self.change_sort_button.setText('sort in alphabetical order')
+                self.choose_config_options.clear()
                 for k, each in enumerate(self.current_config_alpha_keys):
-                    self.choose_config_options.insert(k, each)
+                    self.choose_config_options.insertItem(k, each)
 
     def insert_bool(self, content):
-        self.config_contents.delete('1.0', END)
-        self.config_contents.insert(END, content)
-        self.config_change()
+        if self.current_config:
+            self.config_contents.setPlainText(content)
+            self.config_change()
 
     def config_change(self):
         if self.current_config:
             try:
-                current = literal_eval(
-                    self.config_contents.get('1.0', 'end-1c'))
-                current_config = self.choose_config_options.get(ANCHOR)
+                current = literal_eval(self.config_contents.toPlainText())
+                current_config = self.choose_config_options.selectedItems(
+                )[0].text()
                 self.current_config[current_config] = current
             except:
                 pass
@@ -180,17 +362,14 @@ class settings_window(Tk):
             if self.search_inds >= search_num:
                 self.search_inds = search_num - 1
             first = self.search_inds_list[self.search_inds]
-            self.choose_config_options.selection_clear(0, END)
-            self.choose_config_options.selection_set(first)
-            self.choose_config_options.selection_anchor(first)
-            self.choose_config_options.see(first)
+            self.choose_config_options.setCurrentRow(first)
             self.show_current_config_options()
 
-    def search(self, *args):
+    def search(self):
         if self.current_config:
-            current = self.search_contents.get()
+            current = self.search_entry.text()
             if not current:
-                self.choose_config_options.selection_clear(0, END)
+                self.choose_config_options.clearSelection()
                 return
             current_keys = self.current_config_keys if self.sort_mode == 1 else self.current_config_alpha_keys
             self.search_inds_list = [
@@ -200,46 +379,61 @@ class settings_window(Tk):
             if self.search_inds_list:
                 self.search_inds = 0
                 first = self.search_inds_list[self.search_inds]
-                self.choose_config_options.selection_clear(0, END)
-                self.choose_config_options.selection_set(first)
-                self.choose_config_options.selection_anchor(first)
-                self.choose_config_options.see(first)
+                self.choose_config_options.setCurrentRow(first)
                 self.show_current_config_options()
             else:
-                self.choose_config_options.selection_clear(0, END)
+                self.choose_config_options.clearSelection()
 
     def show_current_config_options(self):
         if self.current_config:
-            current_config = self.choose_config_options.get(ANCHOR)
-            self.config_name.configure(text=current_config)
+            current_config = self.choose_config_options.selectedItems(
+            )[0].text()
+            self.config_name.setText(current_config)
             current_config_value = self.current_config[current_config]
             if type(current_config_value) == str:
                 current_config_value = f"'{current_config_value}'"
             else:
                 current_config_value = str(current_config_value)
-            self.config_contents.delete('1.0', END)
-            self.config_contents.insert(END, current_config_value)
+            self.config_contents.setPlainText(current_config_value)
 
     def choose_filename(self):
-        filename = filedialog.askopenfilename(parent=self,
-                                              title="choose filename",
-                                              filetypes=(("all files", "*"), ))
-        self.config_contents.delete('1.0', END)
-        self.config_contents.insert(END, f"'{filename}'")
-        self.config_change()
+        if self.current_config:
+            last_path = ''
+            if os.path.exists('last_path.txt'):
+                with open('last_path.txt', encoding='utf-8') as f:
+                    last_path = f.read()
+            filename = Dialog(caption='choose filename',
+                              directory=last_path,
+                              filter='all files (*)').filename[0]
+            if filename:
+                current_path = os.path.dirname(filename)
+                if current_path != last_path:
+                    with open('last_path.txt', 'w', encoding='utf-8') as f:
+                        f.write(current_path)
+                self.config_contents.setPlainText(f"'{filename}'")
+                self.config_change()
 
     def choose_directory(self):
-        directory = filedialog.askdirectory(
-            parent=self,
-            title="choose directory",
-        )
-        self.config_contents.delete('1.0', END)
-        self.config_contents.insert(END, f"'{directory}'")
-        self.config_change()
+        if self.current_config:
+            last_path = ''
+            if os.path.exists('last_path.txt'):
+                with open('last_path.txt', encoding='utf-8') as f:
+                    last_path = f.read()
+            directory = Dialog(caption='choose directory',
+                               directory=last_path,
+                               filter='all files (*)',
+                               mode=1).directory
+            if directory:
+                current_path = directory
+                if current_path != last_path:
+                    with open('last_path.txt', 'w', encoding='utf-8') as f:
+                        f.write(current_path)
+                self.config_contents.setPlainText(f"'{directory}'")
+                self.config_change()
 
     def show_saved(self):
-        self.saved_text.place(x=140, y=350)
-        self.after(1000, self.saved_text.place_forget)
+        self.saved_text.show()
+        QtCore.QTimer.singleShot(1000, self.saved_text.hide)
 
     def save_current(self):
         if self.current_config:
