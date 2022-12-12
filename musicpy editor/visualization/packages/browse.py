@@ -1,15 +1,15 @@
 import musicpy as mp
-import json_module
+from change_settings import json_module
 
 piano_config_path = 'visualization/packages/piano_config.json'
-piano_config = json_module.json_module(piano_config_path)
+piano_config = json_module(piano_config_path)
 
 
 class setup:
 
     def __init__(self, browse_dict, file_name=None):
         global piano_config
-        piano_config = json_module.json_module(piano_config_path)
+        piano_config = json_module(piano_config_path)
         self.file_path = 'temp.mid'
         self.action = 0
         self.track_ind_get = None

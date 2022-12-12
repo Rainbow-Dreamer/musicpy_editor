@@ -1,8 +1,10 @@
 {
-    "background_image": "resources/tenshi.jpg",
+    "background_image": "",
     "background_places": [
-        870,
-        -30
+        0,
+        0,
+        0,
+        0
     ],
     "eachline_character": 58,
     "pairing_symbols": [
@@ -54,7 +56,7 @@
     },
     "background_color": "white",
     "foreground_color": "black",
-    "active_background_color": "ivory2",
+    "active_background_color": "lightgrey",
     "day_and_night_colors": [
         "white",
         "gray8"

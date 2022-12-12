@@ -1,10 +1,4 @@
 import traceback
-from tkinter import *
-from tkinter import ttk
-from tkinter import font
-from tkinter.scrolledtext import ScrolledText
-from tkinter import filedialog
-from tkinter import messagebox
 import sys
 import os
 import re
@@ -14,6 +8,7 @@ import json
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)
 try:
+    from PyQt5 import QtGui, QtWidgets, QtCore
     import PIL.Image, PIL.ImageTk
     from yapf.yapflib.yapf_api import FormatCode
     import musicpy
@@ -23,11 +18,15 @@ try:
 except ImportError:
     import traceback
     print(traceback.format_exc())
-    Tk().withdraw()
-    messagebox.showerror(
-        message=
-        'Not all required python packages are installed. Please run\npip install musicpy pillow pyglet==1.5.11 yapf py\nin the terminal to install the required packages for this editor.'
+    app = QtWidgets.QApplication(sys.argv)
+    current_messagebox = QtWidgets.QMessageBox()
+    current_messagebox.setIcon(QtWidgets.QMessageBox.Warning)
+    current_messagebox.setText(
+        'Not all required python packages are installed.\nPlease run\npip install musicpy pillow pyglet==1.5.11 yapf pyqt5\nin the terminal to install the required packages for this editor.'
     )
+    current_messagebox.setWindowTitle('Warning')
+    current_messagebox.exec_()
+    sys.exit(app.exec_())
     sys.exit(0)
 
 musicpy_vars = dir(musicpy)
@@ -45,6 +44,8 @@ if not os.path.exists(current_language_file):
         message=f'Cannot find language file for {current_language}')
 with open(current_language_file, encoding='utf-8') as f:
     current_language_dict = json.load(f)
+
+print2 = print
 
 
 def print(obj):
@@ -68,12 +69,18 @@ def direct_play(filename):
             pass
 
 
-class Root(Tk):
+def set_font(font, dpi):
+    if dpi != 96.0:
+        font.setPointSize(font.pointSize() * (96.0 / dpi))
+    return font
 
-    def __init__(self):
-        super(Root, self).__init__()
-        self.minsize(1200, 640)
-        self.title(f'Musicpy {current_language_dict["Editor"]}')
+
+class Editor(QtWidgets.QMainWindow):
+
+    def __init__(self, dpi=None):
+        super().__init__()
+        self.setMinimumSize(1200, 750)
+        self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')
         self.background_color = config_dict['background_color']
         self.foreground_color = config_dict['foreground_color']
         self.active_background_color = config_dict['active_background_color']
@@ -83,7 +90,7 @@ class Root(Tk):
         self.active_foreground_color = config_dict['active_foreground_color']
         self.disabled_foreground_color = config_dict[
             'disabled_foreground_color']
-        self.configure(background=self.background_color)
+        '''
         style = ttk.Style()
         style.theme_use('alt')
         style.configure('TButton',
@@ -116,123 +123,76 @@ class Root(Tk):
         style.map('New.TButton',
                   background=[('active', self.active_background_color)],
                   foreground=[('active', self.active_foreground_color)])
+        '''
+        self.dpi = dpi
         self.get_config_dict = copy(config_dict)
         self.get_config_dict = {
             i: str(j)
             for i, j in self.get_config_dict.items()
         }
-        try:
-            self.bg = PIL.Image.open(config_dict['background_image'])
-            ratio = 600 / self.bg.height
-            self.bg = self.bg.resize(
-                (int(self.bg.width * ratio), int(self.bg.height * ratio)),
-                PIL.Image.ANTIALIAS)
-            self.bg = PIL.ImageTk.PhotoImage(self.bg)
-            self.bg_label = ttk.Label(self, image=self.bg)
-            bg_places = config_dict['background_places']
-            self.bg_label.place(x=bg_places[0], y=bg_places[1])
-        except:
-            pass
-        self.inputs_text = ttk.Label(
-            self,
-            text=current_language_dict['Input musicpy codes here'],
-            background=self.background_color)
-        self.inputs = Text(self,
-                           wrap='none',
-                           undo=True,
-                           autoseparators=True,
-                           maxundo=-1)
         self.font_type = config_dict['font_type']
         self.font_size = config_dict['font_size']
-        self.inputs.configure(font=(self.font_type, self.font_size))
-        self.inputs_text.place(x=0, y=30)
-        self.inputs.place(x=0, y=60, width=700, height=200)
-        inputs_v = ttk.Scrollbar(self,
-                                 orient="vertical",
-                                 command=self.inputs.yview)
-        inputs_h = ttk.Scrollbar(self,
-                                 orient="horizontal",
-                                 command=self.inputs.xview)
-        self.inputs.configure(yscrollcommand=inputs_v.set,
-                              xscrollcommand=inputs_h.set)
-        inputs_v.place(x=700, y=60, height=200)
-        inputs_h.place(x=0, y=260, width=700)
-        self.outputs_text = ttk.Label(self,
-                                      text=current_language_dict['Output'],
-                                      background=self.background_color)
-        self.outputs = Text(self, wrap='none')
-        self.outputs.configure(font=(self.font_type, self.font_size))
-        self.outputs_text.place(x=0, y=280)
-        self.outputs.place(x=0, y=310, width=700, height=300)
-        outputs_v = ttk.Scrollbar(self,
-                                  orient="vertical",
-                                  command=self.outputs.yview)
-        outputs_h = ttk.Scrollbar(self,
-                                  orient="horizontal",
-                                  command=self.outputs.xview)
-        self.outputs.configure(yscrollcommand=outputs_v.set,
-                               xscrollcommand=outputs_h.set)
-        outputs_v.place(x=700, y=310, height=300)
-        outputs_h.place(x=0, y=610, width=700)
-        self.run_button = ttk.Button(self,
-                                     text=current_language_dict['Run'],
-                                     command=self.runs)
-        self.run_button.place(x=160, y=0)
-        self.realtime = IntVar()
-        self.realtime.set(1)
-        self.realtime_box = ttk.Checkbutton(
-            self,
+        self.current_font = set_font(
+            QtGui.QFont(self.font_type, self.font_size), self.dpi)
+        self.inputs_text = self.get_label(
+            text=current_language_dict['Input musicpy codes here'])
+        self.inputs = QtWidgets.QPlainTextEdit(self)
+        self.inputs.setFixedSize(700, 200)
+        self.inputs.setFont(self.current_font)
+        self.inputs_text.move(0, 80)
+        self.inputs.move(0, 110)
+        self.outputs_text = self.get_label(
+            text=current_language_dict['Output'])
+        self.outputs = QtWidgets.QPlainTextEdit(self)
+        self.outputs.setFont(self.current_font)
+        self.outputs_text.move(0, 350)
+        self.outputs.setFixedSize(700, 300)
+        self.outputs.move(0, 380)
+        self.run_button = self.get_button(text=current_language_dict['Run'],
+                                          command=self.runs)
+        self.run_button.move(160, 0)
+        self.realtime_box = self.get_checkbutton(
             text=current_language_dict['Real Time'],
-            variable=self.realtime,
             command=self.check_realtime)
+        self.realtime_box.setChecked(True)
+        self.realtime_box.move(current_language_dict['realtime_box_place'], 0)
         self.is_realtime = 1
         self.quit = False
-        self.no_print = IntVar()
-        self.no_print.set(1)
-        self.print_box = ttk.Checkbutton(
-            self,
+        self.print_box = self.get_checkbutton(
             text=current_language_dict["Don't use print"],
-            variable=self.no_print,
             command=self.check_print)
-        self.auto = IntVar()
-        self.auto.set(1)
+        self.print_box.setChecked(True)
         self.is_auto = 1
-        self.auto_box = ttk.Checkbutton(
-            self,
+        self.auto_box = self.get_checkbutton(
             text=current_language_dict['Autocomplete'],
-            variable=self.auto,
             command=self.check_auto)
+        self.auto_box.setChecked(True)
         self.is_grammar = 1
-        self.grammar = IntVar()
-        self.grammar.set(1)
-        self.grammar_box = ttk.Checkbutton(
-            self,
+        self.grammar_box = self.get_checkbutton(
             text=current_language_dict['Syntax Highlight'],
-            variable=self.grammar,
             command=self.check_grammar)
+        self.grammar_box.setChecked(True)
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
         self.wraplines_number = config_dict['wraplines_number']
-        self.wraplines_button = ttk.Button(
-            self,
+        self.wraplines_button = self.get_button(
             text=current_language_dict['Word Wrap'],
             command=self.wraplines)
-        self.realtime_box.place(x=current_language_dict['realtime_box_place'],
-                                y=0)
-        self.auto_box.place(x=current_language_dict['auto_box_place'], y=0)
-        self.grammar_box.place(x=740, y=0)
-        self.wraplines_button.place(x=750, y=350)
-        self.print_box.place(x=620, y=0)
+        self.auto_box.move(current_language_dict['auto_box_place'], 0)
+        self.print_box.move(670, 0)
+        self.grammar_box.move(830, 0)
+        self.wraplines_button.move(750, 400)
+        
 
-        self.save_button = ttk.Button(self,
-                                      text=current_language_dict['Save'],
+        self.save_button = self.get_button(text=current_language_dict['Save'],
                                       command=self.save_current_file)
-        self.save_button.place(x=80, y=0)
+        self.save_button.move(50, 0)
         self.is_print = 1
         self.pre_input = ''
         self.start = 0
         self.start2 = 0
         self.changed = False
+        '''
         self.auto_complete_menu = Listbox(self)
         self.auto_complete_menu.bind("<<ListboxSelect>>",
                                      lambda e: self.enter_choose())
@@ -274,11 +234,11 @@ class Root(Tk):
             label=current_language_dict['Visualize Settings'],
             command=self.visualize_config,
             foreground=self.foreground_color)
-        self.file_top.place(x=0, y=0)
+        self.file_top.move(x=0, y=0)
         self.config_button = ttk.Button(self,
                                         text=current_language_dict['Settings'],
                                         command=self.config_options)
-        self.config_button.place(x=320, y=0)
+        self.config_button.move(x=320, y=0)
         grammar_highlight = config_dict['grammar_highlight']
         for each in grammar_highlight:
             grammar_highlight[each].sort(key=lambda s: len(s), reverse=True)
@@ -294,7 +254,7 @@ class Root(Tk):
             text=current_language_dict['Light On']
             if self.bg_mode == 'black' else current_language_dict['Light Off'],
             command=self.change_background_color_mode)
-        self.turn_bg_mode.place(x=240, y=0)
+        self.turn_bg_mode.move(x=240, y=0)
         self.change_background_color_mode(turn=False)
         self.last_save = self.inputs.get('1.0', 'end-1c')
 
@@ -370,20 +330,44 @@ class Root(Tk):
         self.visualize_config_box_open = False
         self.current_line_number = 1
         self.current_column_number = 1
-        self.line_column = ttk.Label(
+        self.line_column = QtWidgets.QLabel(
             self,
             text=
             f'Line {self.current_line_number} Col {self.current_column_number}'
         )
-        self.line_column.place(x=750, y=500)
+        self.line_column.move(750, 500)
         self.get_current_line_column()
+        '''
+        self.show()
+
+    def get_button(self, command=None, **kwargs):
+        current_button = QtWidgets.QPushButton(self, **kwargs)
+        if command is not None:
+            current_button.clicked.connect(command)
+        current_button.setFont(self.current_font)
+        current_button.adjustSize()
+        return current_button
+
+    def get_checkbutton(self, command=None, **kwargs):
+        current_button = QtWidgets.QCheckBox(self, **kwargs)
+        if command is not None:
+            current_button.clicked.connect(command)
+        current_button.setFont(self.current_font)
+        current_button.adjustSize()
+        return current_button
+
+    def get_label(self, **kwargs):
+        current_label = QtWidgets.QLabel(self, **kwargs)
+        current_label.setFont(self.current_font)
+        current_label.adjustSize()
+        return current_label
 
     def check_if_edited(self):
         current_text = self.inputs.get('1.0', 'end-1c')
         if current_text != self.last_save:
-            self.title(f'Musicpy {current_language_dict["Editor"]} *')
+            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]} *')
         else:
-            self.title(f'Musicpy {current_language_dict["Editor"]}')
+            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')
         self.after(100, self.check_if_edited)
 
     def close_window(self):
@@ -396,16 +380,16 @@ class Root(Tk):
                 highlightbackground=config_dict['highlight_background'],
                 highlightcolor=config_dict['highlight_color'])
             self.ask_save_window.wm_overrideredirect(True)
-            self.ask_save_window.minsize(400, 150)
+            self.ask_save_window.setMinimumSize(400, 150)
             ask_save_window_x = self.winfo_x()
             ask_save_window_y = self.winfo_y()
             self.ask_save_window.geometry(
                 f"+{ask_save_window_x + 300}+{ask_save_window_y + 200}")
-            self.ask_save_window.ask_save_label = ttk.Label(
+            self.ask_save_window.ask_save_label = QtWidgets.QLabel(
                 self.ask_save_window,
                 text=current_language_dict[
                     'The file has changed, do you want to save the changes?'])
-            self.ask_save_window.ask_save_label.place(x=0, y=30)
+            self.ask_save_window.ask_save_label.move(x=0, y=30)
             self.ask_save_window.save_button = ttk.Button(
                 self.ask_save_window,
                 text=current_language_dict['Save'],
@@ -421,9 +405,9 @@ class Root(Tk):
                 text=current_language_dict['Cancel'],
                 command=self.ask_save_window.destroy,
                 style='New.TButton')
-            self.ask_save_window.save_button.place(x=0, y=100)
-            self.ask_save_window.not_save_button.place(x=90, y=100)
-            self.ask_save_window.cancel_button.place(x=200, y=100)
+            self.ask_save_window.save_button.move(x=0, y=100)
+            self.ask_save_window.not_save_button.move(x=90, y=100)
+            self.ask_save_window.cancel_button.move(x=200, y=100)
         else:
             self.destroy()
             self.save_config(True, False)
@@ -442,8 +426,13 @@ class Root(Tk):
         if self.visualize_config_box_open:
             return
         self.visualize_config_box_open = True
-        current_config_window = config_window(config_path=piano_config_path)
-        current_config_window.mainloop()
+        app = QtWidgets.QApplication(sys.argv)
+        dpi = (app.screens()[0]).logicalDotsPerInch()
+        current_config_window = config_window(dpi=dpi,
+                                              config_path=piano_config_path)
+        app.exec()
+        del app
+        self.visualize_config_box_open = False
 
     def get_current_line_column(self):
         ind = self.inputs.index(INSERT)
@@ -611,7 +600,7 @@ class Root(Tk):
         }
         self.config_box_open = True
         self.config_window = Toplevel(self, bg=self.background_color)
-        self.config_window.minsize(800, 650)
+        self.config_window.setMinimumSize(800, 650)
         self.config_window.title(current_language_dict['Settings'])
         self.config_window.protocol("WM_DELETE_WINDOW", self.close_config_box)
 
@@ -630,20 +619,21 @@ class Root(Tk):
         alpha_config.sort(key=lambda s: s.lower())
         self.config_window.options_num = len(all_config_options)
         self.config_window.config_options_bar = Scrollbar(self.config_window)
-        self.config_window.config_options_bar.place(x=235,
-                                                    y=120,
-                                                    height=170,
-                                                    anchor=CENTER)
+        self.config_window.config_options_bar.move(x=235,
+                                                   y=120,
+                                                   height=170,
+                                                   anchor=CENTER)
         self.config_window.choose_config_options = Listbox(
             self.config_window,
             yscrollcommand=self.config_window.config_options_bar.set)
         for k in config_dict:
             self.config_window.choose_config_options.insert(END, k)
-        self.config_window.choose_config_options.place(x=0, y=30, width=220)
+        self.config_window.choose_config_options.move(x=0, y=30, width=220)
         self.config_window.config_options_bar.config(
             command=self.config_window.choose_config_options.yview)
-        self.config_window.config_name = ttk.Label(self.config_window, text='')
-        self.config_window.config_name.place(x=300, y=20)
+        self.config_window.config_name = QtWidgets.QLabel(self.config_window,
+                                                          text='')
+        self.config_window.config_name.move(x=300, y=20)
         self.config_window.choose_config_options.bind(
             '<<ListboxSelect>>', lambda e: self.show_current_config_options())
         self.config_contents = Text(self.config_window,
@@ -652,7 +642,7 @@ class Root(Tk):
                                     maxundo=-1)
         self.config_contents.bind('<KeyRelease>',
                                   lambda e: self.config_change())
-        self.config_contents.place(x=350, y=50, width=400, height=200)
+        self.config_contents.move(x=350, y=50, width=400, height=200)
         self.config_window.choose_filename_button = ttk.Button(
             self.config_window,
             text=current_language_dict['Choose Filename'],
@@ -663,17 +653,17 @@ class Root(Tk):
             text=current_language_dict['Choose Directory'],
             command=self.choose_directory,
             width=20)
-        self.config_window.choose_filename_button.place(x=0, y=250)
-        self.config_window.choose_directory_button.place(x=0, y=290)
-        self.config_window.search_text = ttk.Label(
+        self.config_window.choose_filename_button.move(x=0, y=250)
+        self.config_window.choose_directory_button.move(x=0, y=290)
+        self.config_window.search_text = QtWidgets.QLabel(
             self.config_window,
             text=current_language_dict['Search config options'])
-        self.config_window.search_text.place(x=30, y=370)
+        self.config_window.search_text.move(x=30, y=370)
         self.config_search_contents = StringVar()
         self.config_search_contents.trace_add('write', self.search_config)
         self.config_window.search_entry = Entry(
             self.config_window, textvariable=self.config_search_contents)
-        self.config_window.search_entry.place(x=170, y=370)
+        self.config_window.search_entry.move(x=170, y=370)
         self.config_window.search_inds = 0
         self.config_window.up_button = ttk.Button(
             self.config_window,
@@ -685,8 +675,8 @@ class Root(Tk):
             text=current_language_dict['Next'],
             command=lambda: self.change_search_inds(1),
             width=8)
-        self.config_window.up_button.place(x=170, y=400)
-        self.config_window.down_button.place(x=250, y=400)
+        self.config_window.up_button.move(x=170, y=400)
+        self.config_window.down_button.move(x=250, y=400)
         self.config_window.search_inds_list = []
         self.config_window.value_dict = config_dict
         self.config_window.choose_bool1 = ttk.Button(
@@ -697,31 +687,31 @@ class Root(Tk):
             self.config_window,
             text='False',
             command=lambda: self.insert_bool('False'))
-        self.config_window.choose_bool1.place(x=150, y=270)
-        self.config_window.choose_bool2.place(x=250, y=270)
+        self.config_window.choose_bool1.move(x=150, y=270)
+        self.config_window.choose_bool2.move(x=250, y=270)
         save_button = ttk.Button(self.config_window,
                                  text=current_language_dict['Save'],
                                  command=self.save_config)
-        save_button.place(x=30, y=330)
-        self.saved_label = ttk.Label(
+        save_button.move(x=30, y=330)
+        self.saved_label = QtWidgets.QLabel(
             self.config_window,
             text=current_language_dict['Successfully saved'])
         self.choose_font = ttk.Button(
             self.config_window,
             text=current_language_dict['Choose Font'],
             command=self.get_font)
-        self.choose_font.place(x=230, y=460)
+        self.choose_font.move(x=230, y=460)
         self.whole_fonts = list(font.families())
         self.whole_fonts.sort(
             key=lambda x: x if not x.startswith('@') else x[1:])
         self.font_list_bar = ttk.Scrollbar(self.config_window)
-        self.font_list_bar.place(x=190, y=520, height=170, anchor=CENTER)
+        self.font_list_bar.move(x=190, y=520, height=170, anchor=CENTER)
         self.font_list = Listbox(self.config_window,
                                  yscrollcommand=self.font_list_bar.set,
                                  width=25)
         for k in self.whole_fonts:
             self.font_list.insert(END, k)
-        self.font_list.place(x=0, y=430)
+        self.font_list.move(x=0, y=430)
         self.font_list_bar.config(command=self.font_list.yview)
         current_font_ind = self.whole_fonts.index(self.font_type)
         self.font_list.selection_set(current_font_ind)
@@ -731,12 +721,12 @@ class Root(Tk):
             text="sort in order of appearance",
             command=self.change_sort)
         self.sort_mode = 1
-        self.change_sort_button.place(x=150, y=330, width=180)
+        self.change_sort_button.move(x=150, y=330, width=180)
 
         self.reload_button = ttk.Button(self.config_window,
                                         text=current_language_dict['Reload'],
                                         command=self.reload)
-        self.reload_button.place(x=230, y=510)
+        self.reload_button.move(x=230, y=510)
 
     def reload(self):
         self.destroy()
@@ -790,7 +780,7 @@ class Root(Tk):
                       separators=(',', ': '),
                       ensure_ascii=False)
         if not outer:
-            self.saved_label.place(x=360, y=400)
+            self.saved_label.move(x=360, y=400)
             self.after(600, self.saved_label.place_forget)
         if reload:
             self.reload_config()
@@ -818,7 +808,7 @@ class Root(Tk):
                 self.bg = PIL.ImageTk.PhotoImage(self.bg)
                 self.bg_label.configure(image=self.bg)
                 bg_places = config_dict['background_places']
-                self.bg_label.place(x=bg_places[0], y=bg_places[1])
+                self.bg_label.move(x=bg_places[0], y=bg_places[1])
 
         except:
             bg_path = config_dict['background_image']
@@ -831,9 +821,9 @@ class Root(Tk):
                     (int(self.bg.width * ratio), int(self.bg.height * ratio)),
                     PIL.Image.ANTIALIAS)
                 self.bg = PIL.ImageTk.PhotoImage(self.bg)
-                self.bg_label = ttk.Label(self, image=self.bg)
+                self.bg_label = QtWidgets.QLabel(self, image=self.bg)
                 bg_places = config_dict['background_places']
-                self.bg_label.place(x=bg_places[0], y=bg_places[1])
+                self.bg_label.move(x=bg_places[0], y=bg_places[1])
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
         self.wraplines_number = config_dict['wraplines_number']
@@ -858,7 +848,7 @@ class Root(Tk):
                     f.write(self.last_save)
             else:
                 self.save()
-            self.title(f'Musicpy {current_language_dict["Editor"]}')
+            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')
 
     def save(self):
         filename = filedialog.asksaveasfilename(
@@ -1112,7 +1102,7 @@ class Root(Tk):
         places = self.get_input_place()
         for each in find_similar:
             self.auto_complete_menu.insert(END, each)
-        self.auto_complete_menu.place(x=places[0], y=places[1])
+        self.auto_complete_menu.move(x=places[0], y=places[1])
         self.show_select = True
         self.select_ind = 0
         self.auto_complete_menu.selection_set(0)
@@ -1222,7 +1212,7 @@ class Root(Tk):
         self.after(100, self.realtime_run)
 
     def check_realtime(self):
-        value = self.realtime.get()
+        value = self.realtime_box.isChecked()
         if value:
             if not self.is_realtime:
                 self.is_realtime = 1
@@ -1322,17 +1312,17 @@ class Root(Tk):
         self.search_box = Toplevel(self, bg=self.background_color)
         self.search_box.protocol("WM_DELETE_WINDOW", self.close_search_box)
         self.search_box.title(current_language_dict['Search'])
-        self.search_box.minsize(300, 200)
+        self.search_box.setMinimumSize(300, 200)
         self.search_box.geometry('250x150+350+300')
-        self.search_text = ttk.Label(
+        self.search_text = QtWidgets.QLabel(
             self.search_box,
             text=current_language_dict['Please input text you want to search'])
-        self.search_text.place(x=0, y=0)
+        self.search_text.move(x=0, y=0)
         self.search_contents = StringVar()
         self.search_contents.trace_add('write', self.search)
         self.search_entry = Entry(self.search_box,
                                   textvariable=self.search_contents)
-        self.search_entry.place(x=0, y=30)
+        self.search_entry.move(x=0, y=30)
         self.search_entry.focus_set()
         self.search_inds = 0
         self.search_inds_list = []
@@ -1347,16 +1337,16 @@ class Root(Tk):
             self.search_box,
             text=current_language_dict['Next'],
             command=lambda: self.change_search_ind(1))
-        self.search_up.place(x=0, y=60)
-        self.search_down.place(x=100, y=60)
+        self.search_up.move(x=0, y=60)
+        self.search_down.move(x=100, y=60)
         self.case_sensitive = False
         self.check_case_sensitive = IntVar()
         self.check_case_sensitive.set(0)
-        self.case_sensitive_box = ttk.Checkbutton(
+        self.case_sensitive_box = QtWidgets.QCheckBox(
             self.search_box,
             text=current_language_dict['Case sensitive'],
             variable=self.check_case_sensitive)
-        self.case_sensitive_box.place(x=170, y=30)
+        self.case_sensitive_box.move(x=170, y=30)
 
     def change_search_ind(self, ind):
         length = len(self.search_inds_list)
@@ -1407,10 +1397,41 @@ class Root(Tk):
         self.menubar.tk_popup(event.x_root, event.y_root)
 
 
+def get_stylesheet():
+    if config_dict['background_image']:
+        bg_path = config_dict['background_image']
+        bg_places = config_dict['background_places']
+        current_background_stylesheet = f'background-image: url("{bg_path}"); background-repeat: no-repeat; background-position: right; padding: {bg_places[0]}px {bg_places[1]}px {bg_places[2]}px {bg_places[3]}px; background-origin: content;}}'
+    else:
+        current_background_stylesheet = ''
+    result = f'''
+    QMainWindow {{
+    background-color: {config_dict["background_color"]}; {current_background_stylesheet}
+    }}
+    QPushButton {{
+    background-color: transparent;
+    color: {config_dict["foreground_color"]};
+    }}
+    QPushButton:hover {{
+    background-color: {config_dict["active_background_color"]};
+    color: {config_dict["active_foreground_color"]};
+    }}
+    QCheckBox {{
+    background-color: transparent;
+    color: {config_dict["foreground_color"]};
+    }}
+    QLabel {{
+    background-color: transparent;
+    }}
+'''
+    return result
+
 if __name__ == '__main__':
     function_names = list(
         set(musicpy_vars + list(locals().keys()) + list(globals().keys())))
-    root = Root()
-    root.focus_force()
-    root.inputs.focus_set()
-    root.mainloop()
+    app = QtWidgets.QApplication(sys.argv)
+    current_stylesheet = get_stylesheet()
+    app.setStyleSheet(current_stylesheet)
+    dpi = (app.screens()[0]).logicalDotsPerInch()
+    current_editor = Editor(dpi=dpi)
+    app.exec()
