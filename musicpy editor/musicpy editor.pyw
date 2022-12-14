@@ -90,7 +90,7 @@ class Dialog(QtWidgets.QMainWindow):
                 self, caption=caption, directory=directory, filter=filter)
 
 
-class CompletionTextEdit(QtWidgets.QPlainTextEdit):
+class CustomTextEdit(QtWidgets.QPlainTextEdit):
 
     def __init__(self, parent=None, pairing_symbols=[], custom_actions=[]):
         super().__init__(parent)
@@ -367,21 +367,56 @@ class Highlighter(QtGui.QSyntaxHighlighter):
             return False
 
 
+class ask_save_window(QtWidgets.QMainWindow):
+
+    def __init__(self, dpi=None):
+        super().__init__()
+        self.setWindowTitle('Save File')
+        self.setMinimumSize(600, 200)
+        self.dpi = dpi
+        self.font_type = config_dict['font_type']
+        self.font_size = config_dict['font_size']
+        self.current_font = set_font(
+            QtGui.QFont(self.font_type, self.font_size), self.dpi)
+        self.ask_save_label = self.get_label(text=current_language_dict[
+            'The file has changed, do you want to save the changes?'])
+        self.ask_save_label.move(0, 30)
+        self.save_button = self.get_button(
+            text=current_language_dict['Save'],
+            command=current_editor.save_and_quit)
+        self.not_save_button = self.get_button(
+            text=current_language_dict['Discard'],
+            command=current_editor.destroy_and_quit)
+        self.cancel_button = self.get_button(
+            text=current_language_dict['Cancel'], command=self.close)
+        self.save_button.move(0, 100)
+        self.not_save_button.move(120, 100)
+        self.cancel_button.move(300, 100)
+        self.show()
+
+    def get_button(self, command=None, **kwargs):
+        current_button = QtWidgets.QPushButton(self, **kwargs)
+        if command is not None:
+            current_button.clicked.connect(command)
+        current_button.setFont(self.current_font)
+        current_button.adjustSize()
+        current_button.setStyleSheet(
+            f'background-color: {config_dict["button_background_color"]}')
+        return current_button
+
+    def get_label(self, **kwargs):
+        current_label = QtWidgets.QLabel(self, **kwargs)
+        current_label.setFont(self.current_font)
+        current_label.adjustSize()
+        return current_label
+
+
 class Editor(QtWidgets.QMainWindow):
 
     def __init__(self, dpi=None):
         super().__init__()
         self.setMinimumSize(1200, 750)
         self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')
-        self.background_color = config_dict['background_color']
-        self.foreground_color = config_dict['foreground_color']
-        self.active_background_color = config_dict['active_background_color']
-        self.day_color, self.night_color = config_dict['day_and_night_colors']
-        self.search_highlight_color = config_dict['search_highlight_color']
-        self.button_background_color = config_dict['button_background_color']
-        self.active_foreground_color = config_dict['active_foreground_color']
-        self.disabled_foreground_color = config_dict[
-            'disabled_foreground_color']
         self.dpi = dpi
         self.get_config_dict = copy(config_dict)
         self.get_config_dict = {
@@ -412,7 +447,7 @@ class Editor(QtWidgets.QMainWindow):
                             command=self.search_words,
                             shortcut='Ctrl+F')
         ]
-        self.inputs = CompletionTextEdit(
+        self.inputs = CustomTextEdit(
             self,
             pairing_symbols=config_dict['pairing_symbols'],
             custom_actions=self.custom_actions)
@@ -433,7 +468,6 @@ class Editor(QtWidgets.QMainWindow):
         self.is_syntax = True
         self.highlight = Highlighter(
             self.inputs.document() if self.is_syntax else None)
-        self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
         self.is_print = True
         self.pre_input = ''
@@ -513,7 +547,16 @@ class Editor(QtWidgets.QMainWindow):
         self.line_column.move(750, 500)
         self.current_config_window = None
         self.current_visual_config_window = None
+        self.ask_save_window = None
         self.show()
+
+    def closeEvent(self, event):
+        current_text = self.inputs.toPlainText()
+        if current_text == self.last_save:
+            event.accept()
+        else:
+            event.ignore()
+            self.close_window()
 
     def get_button(self, command=None, **kwargs):
         current_button = QtWidgets.QPushButton(self, **kwargs)
@@ -558,52 +601,22 @@ class Editor(QtWidgets.QMainWindow):
         return current_action
 
     def close_window(self):
-        current_text = self.inputs.toPlainText()
-        if current_text != self.last_save:
-            self.ask_save_window = Toplevel(
-                self,
-                bg=self.background_color,
-                highlightthickness=config_dict['highlight_thickness'],
-                highlightbackground=config_dict['highlight_background'],
-                highlightcolor=config_dict['highlight_color'])
-            self.ask_save_window.wm_overrideredirect(True)
-            self.ask_save_window.setMinimumSize(400, 150)
-            ask_save_window_x = self.winfo_x()
-            ask_save_window_y = self.winfo_y()
-            self.ask_save_window.geometry(
-                f"+{ask_save_window_x + 300}+{ask_save_window_y + 200}")
-            self.ask_save_window.ask_save_label = QtWidgets.QLabel(
-                self.ask_save_window,
-                text=current_language_dict[
-                    'The file has changed, do you want to save the changes?'])
-            self.ask_save_window.ask_save_label.move(x=0, y=30)
-            self.ask_save_window.save_button = ttk.Button(
-                self.ask_save_window,
-                text=current_language_dict['Save'],
-                command=self.save_and_quit,
-                style='New.TButton')
-            self.ask_save_window.not_save_button = ttk.Button(
-                self.ask_save_window,
-                text=current_language_dict['Discard'],
-                command=self.destroy_and_quit,
-                style='New.TButton')
-            self.ask_save_window.cancel_button = ttk.Button(
-                self.ask_save_window,
-                text=current_language_dict['Cancel'],
-                command=self.ask_save_window.destroy,
-                style='New.TButton')
-            self.ask_save_window.save_button.move(x=0, y=100)
-            self.ask_save_window.not_save_button.move(x=90, y=100)
-            self.ask_save_window.cancel_button.move(x=200, y=100)
-        else:
-            self.close()
+        if self.ask_save_window is not None and self.ask_save_window.isVisible(
+        ):
+            return
+        self.ask_save_window = ask_save_window(dpi=self.dpi)
+        self.ask_save_window.show()
 
     def save_and_quit(self):
         self.save_current_file()
         if self.current_filename_path:
+            self.last_save = self.inputs.toPlainText()
+            self.ask_save_window.close()
             self.close()
 
     def destroy_and_quit(self):
+        self.last_save = self.inputs.toPlainText()
+        self.ask_save_window.close()
         self.close()
 
     def editor_config(self):
@@ -667,7 +680,6 @@ class Editor(QtWidgets.QMainWindow):
             config_dict = json.load(f)
         current_stylesheet = get_stylesheet()
         app.setStyleSheet(current_stylesheet)
-        self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
         if self.is_syntax:
             self.highlight = Highlighter(self.inputs.document())

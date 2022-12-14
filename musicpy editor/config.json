@@ -6,14 +6,12 @@
         0,
         0
     ],
-    "eachline_character": 58,
     "pairing_symbols": [
         "()",
         "[]",
         "''",
         "\"\""
     ],
-    "wraplines_number": 2,
     "font_type": "Consolas",
     "font_size": 12,
     "background_mode": "white",
@@ -57,10 +55,6 @@
     "background_color": "white",
     "foreground_color": "black",
     "active_background_color": "lightgrey",
-    "day_and_night_colors": [
-        "white",
-        "gray8"
-    ],
     "search_highlight_color": [
         "light blue",
         "light green"
