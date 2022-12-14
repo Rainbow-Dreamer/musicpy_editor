@@ -92,8 +92,10 @@ class Dialog(QtWidgets.QMainWindow):
 
 class CompletionTextEdit(QtWidgets.QPlainTextEdit):
 
-    def __init__(self, parent=None, pairing_symbols=[]):
+    def __init__(self, parent=None, pairing_symbols=[], custom_actions=[]):
         super().__init__(parent)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.__contextMenu)
         self._completer = None
         self.pairing_symbols = pairing_symbols
         self.pairing_symbols_left = [each[0] for each in self.pairing_symbols]
@@ -104,14 +106,24 @@ class CompletionTextEdit(QtWidgets.QPlainTextEdit):
         ]
         self.special_words = "~!@#$%^&*()+{}|:\"<>?,./;'[]\\-="
         self.current_completion_words = function_names
+        self.custom_actions = custom_actions
 
-    def setCompleter(self, c):
+    def __contextMenu(self):
+        self._normalMenu = self.createStandardContextMenu()
+        self._addCustomMenuItems(self._normalMenu)
+        self._normalMenu.exec_(QtGui.QCursor.pos())
 
-        self._completer = c
-        c.setWidget(self)
-        c.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
-        c.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        c.activated.connect(self.insertCompletion)
+    def _addCustomMenuItems(self, menu):
+        menu.addSeparator()
+        menu.addActions(self.custom_actions)
+
+    def setCompleter(self, completer):
+
+        self._completer = completer
+        completer.setWidget(self)
+        completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        completer.activated.connect(self.insertCompletion)
 
     def insertCompletion(self, completion):
         if self._completer.widget() is not self:
@@ -201,6 +213,159 @@ class CompletionTextEdit(QtWidgets.QPlainTextEdit):
             self._completer.popup().verticalScrollBar().sizeHint().width())
         self._completer.complete(cr)
 
+    def zoom(self, delta):
+        if delta < 0:
+            self.zoomOut(1)
+        elif delta > 0:
+            self.zoomIn(1)
+
+    def wheelEvent(self, event):
+        if (event.modifiers() & QtCore.Qt.ControlModifier):
+            self.zoom(event.angleDelta().y())
+        else:
+            super().wheelEvent(event)
+
+
+def format_color(color, style=''):
+    """
+    Return a QtGui.QTextCharFormat with the given attributes.
+    """
+    _color = QtGui.QColor()
+    if type(color) is not str:
+        _color.setRgb(color[0], color[1], color[2])
+    else:
+        _color.setNamedColor(color)
+
+    _format = QtGui.QTextCharFormat()
+    _format.setForeground(_color)
+    if 'bold' in style:
+        _format.setFontWeight(QtGui.QFont.Bold)
+    if 'italic' in style:
+        _format.setFontItalic(True)
+
+    return _format
+
+
+styles = {
+    'keyword': format_color([150, 85, 140], 'bold'),
+    'operator': format_color('red'),
+    'brace': format_color('darkGray'),
+    'defclass': format_color([220, 220, 255], 'bold'),
+    'string': format_color([20, 110, 100]),
+    'string2': format_color([30, 120, 110]),
+    'comment': format_color([128, 128, 128]),
+    'numbers': format_color([100, 150, 190]),
+}
+
+
+class Highlighter(QtGui.QSyntaxHighlighter):
+
+    keywords = [
+        'and',
+        'assert',
+        'break',
+        'class',
+        'continue',
+        'def',
+        'del',
+        'elif',
+        'else',
+        'except',
+        'exec',
+        'finally',
+        'for',
+        'from',
+        'global',
+        'if',
+        'import',
+        'in',
+        'is',
+        'lambda',
+        'not',
+        'or',
+        'pass',
+        'print',
+        'raise',
+        'return',
+        'try',
+        'while',
+        'yield',
+        'None',
+        'True',
+        'False',
+    ]
+    operators = config_dict['syntax_highlight']['red']
+    braces = []
+
+    def __init__(self, document):
+        super().__init__(document)
+        self.tri_single = (QtCore.QRegExp("'''"), 1, styles['string2'])
+        self.tri_double = (QtCore.QRegExp('"""'), 2, styles['string2'])
+
+        rules = []
+
+        rules += [(r'\b%s\b' % w, 0, styles['keyword'])
+                  for w in Highlighter.keywords]
+        rules += [(r'%s' % o, 0, styles['operator'])
+                  for o in Highlighter.operators]
+        rules += [(r'%s' % b, 0, styles['brace']) for b in Highlighter.braces]
+        other_rules = [[(r'\b%s\b' % k, 0, format_color(i)) for k in j]
+                       for i, j in config_dict['syntax_highlight'].items()
+                       if i != 'red']
+        for i in other_rules:
+            rules += i
+        rules += [
+            (r'"[^"\\]*(\\.[^"\\]*)*"', 0, styles['string']),
+            (r"'[^'\\]*(\\.[^'\\]*)*'", 0, styles['string']),
+            (r'\bdef\b\s*(\w+)', 1, styles['defclass']),
+            (r'\bclass\b\s*(\w+)', 1, styles['defclass']),
+            (r'#[^\n]*', 0, styles['comment']),
+            (r'\b[+-]?[0-9]+[lL]?\b', 0, styles['numbers']),
+            (r'\b[+-]?0[xX][0-9A-Fa-f]+[lL]?\b', 0, styles['numbers']),
+            (r'\b[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\b', 0,
+             styles['numbers']),
+        ]
+        self.rules = [(QtCore.QRegExp(pat), index, fmt)
+                      for (pat, index, fmt) in rules]
+
+    def highlightBlock(self, text):
+        for expression, nth, format in self.rules:
+            index = expression.indexIn(text, 0)
+
+            while index >= 0:
+                index = expression.pos(nth)
+                length = len(expression.cap(nth))
+                self.setFormat(index, length, format)
+                index = expression.indexIn(text, index + length)
+
+        self.setCurrentBlockState(0)
+        in_multiline = self.match_multiline(text, *self.tri_single)
+        if not in_multiline:
+            in_multiline = self.match_multiline(text, *self.tri_double)
+
+    def match_multiline(self, text, delimiter, in_state, style):
+        if self.previousBlockState() == in_state:
+            start = 0
+            add = 0
+        else:
+            start = delimiter.indexIn(text)
+            add = delimiter.matchedLength()
+        while start >= 0:
+            end = delimiter.indexIn(text, start + add)
+            if end >= add:
+                length = end - start + add + delimiter.matchedLength()
+                self.setCurrentBlockState(0)
+            else:
+                self.setCurrentBlockState(in_state)
+                length = len(text) - start + add
+            self.setFormat(start, length, style)
+            start = delimiter.indexIn(text, start + length)
+
+        if self.currentBlockState() == in_state:
+            return True
+        else:
+            return False
+
 
 class Editor(QtWidgets.QMainWindow):
 
@@ -229,8 +394,29 @@ class Editor(QtWidgets.QMainWindow):
             QtGui.QFont(self.font_type, self.font_size), self.dpi)
         self.inputs_text = self.get_label(
             text=current_language_dict['Input musicpy codes here'])
+        self.custom_actions = [
+            self.get_action(text=current_language_dict['Play Selected Code'],
+                            command=self.play_select_text,
+                            shortcut='Alt+Z'),
+            self.get_action(
+                text=current_language_dict['Play Selected Code Visually'],
+                command=self.visualize_play_select_text,
+                shortcut='Alt+X'),
+            self.get_action(text=current_language_dict['Import MIDI File'],
+                            command=self.read_midi_file,
+                            shortcut='Ctrl+D'),
+            self.get_action(text=current_language_dict['Stop Playing'],
+                            command=self.stop_play_midi,
+                            shortcut='Ctrl+E'),
+            self.get_action(text=current_language_dict['Search'],
+                            command=self.search_words,
+                            shortcut='Ctrl+F')
+        ]
         self.inputs = CompletionTextEdit(
-            self, pairing_symbols=config_dict['pairing_symbols'])
+            self,
+            pairing_symbols=config_dict['pairing_symbols'],
+            custom_actions=self.custom_actions)
+        self.inputs.addActions(self.custom_actions)
         self.inputs.setFixedSize(700, 200)
         self.inputs.setFont(self.current_font)
         self.inputs_text.move(0, 80)
@@ -242,26 +428,13 @@ class Editor(QtWidgets.QMainWindow):
         self.outputs_text.move(0, 350)
         self.outputs.setFixedSize(700, 300)
         self.outputs.move(0, 380)
-        self.realtime_box = self.get_checkbutton(
-            text=current_language_dict['Real Time'],
-            command=self.check_realtime)
-        self.realtime_box.setChecked(True)
-        self.realtime_box.move(current_language_dict['realtime_box_place'], 0)
-        self.is_realtime = 1
+        self.is_realtime = True
         self.quit = False
-        self.print_box = self.get_checkbutton(
-            text=current_language_dict["Don't use print"],
-            command=self.check_print)
-        self.print_box.setChecked(True)
         self.is_syntax = True
-        self.syntax_box = self.get_checkbutton(
-            text=current_language_dict['Syntax Highlight'],
-            command=self.check_syntax)
-        self.syntax_box.setChecked(True)
+        self.highlight = Highlighter(
+            self.inputs.document() if self.is_syntax else None)
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
-        self.print_box.move(550, 0)
-        self.syntax_box.move(710, 0)
         self.is_print = True
         self.pre_input = ''
         self.changed = False
@@ -280,10 +453,7 @@ class Editor(QtWidgets.QMainWindow):
         self.file_menu.addAction(
             self.get_action(text=current_language_dict['Save As'],
                             command=self.save))
-        self.file_menu.addAction(
-            self.get_action(text=current_language_dict['Import MIDI File'],
-                            command=self.read_midi_file,
-                            shortcut='Ctrl+D'))
+        self.file_menu.addAction(self.custom_actions[2])
         self.file_menu.addAction(
             self.get_action(text=current_language_dict['Settings'],
                             command=self.editor_config))
@@ -297,49 +467,41 @@ class Editor(QtWidgets.QMainWindow):
             self.get_action(text=current_language_dict['Run'],
                             command=lambda: self.runs(mode=1),
                             shortcut='Ctrl+R'))
+        self.settings_menu = self.menu_bar.addMenu(
+            current_language_dict['Settings'])
+        self.syntax_action = self.get_action(
+            text=current_language_dict['Syntax Highlight'],
+            command=self.check_syntax,
+            checkable=True,
+            initial_value=True)
+        self.settings_menu.addAction(self.syntax_action)
+        self.print_action = self.get_action(
+            text=current_language_dict["Don't use print"],
+            command=self.check_print,
+            checkable=True,
+            initial_value=True)
+        self.settings_menu.addAction(self.print_action)
+        self.realtime_action = self.get_action(
+            text=current_language_dict["Real Time"],
+            command=self.check_realtime,
+            checkable=True,
+            initial_value=True)
+        self.settings_menu.addAction(self.realtime_action)
         self.last_save = self.inputs.toPlainText()
-        '''
-        syntax_highlight = config_dict['syntax_highlight']
-        for each in syntax_highlight:
-            syntax_highlight[each].sort(key=lambda s: len(s), reverse=True)
-        self.syntax_highlight = syntax_highlight
-        for each in self.syntax_highlight:
-            self.inputs.tag_configure(each, foreground=each)
-        '''
         self.current_filename_path = None
         self.inputs.textChanged.connect(self.input_changed)
         QtWidgets.QShortcut('Ctrl+E',
                             self).activated.connect(self.stop_play_midi)
-        '''
         self.bg_mode = config_dict['background_mode']
-        self.turn_bg_mode = ttk.Button(
-            self,
-            text=current_language_dict['Light On']
-            if self.bg_mode == 'black' else current_language_dict['Light Off'],
-            command=self.change_background_color_mode)
-        self.turn_bg_mode.move(x=240, y=0)
         self.change_background_color_mode(turn=False)
-        '''
-        '''
-        self.bind('<Control-a>', lambda e: self.choose_all())
-        self.bind('<Control-f>', lambda e: self.search_words())
-        self.bind('<Control-e>', lambda e: self.stop_play_midi())
-        self.bind('<Control-d>', lambda e: self.read_midi_file())
-        self.bind('<Control-w>', lambda e: self.openfile())
-        self.bind('<Control-s>', lambda e: self.save_current_file())
-        self.bind('<Control-q>', lambda e: self.close_window())
-        self.bind('<Control-r>', lambda e: self.runs())
-        self.bind('<Control-g>',
-                  lambda e: self.change_background_color_mode(True))
-        self.bind('<Control-b>', lambda e: self.config_options())
-        self.bind('<Control-n>', lambda e: self.visualize_config())
-        self.inputs.bind('<Control-MouseWheel>',
-                         lambda e: self.change_font_size(e))
-        self.inputs.bind('<Alt-z>', lambda e: self.play_select_text())
-        self.inputs.bind('<Alt-x>',
-                         lambda e: self.visualize_play_select_text())
-        self.protocol("WM_DELETE_WINDOW", self.close_window)
-        '''
+        self.background_action = self.get_action(
+            text=current_language_dict['Light'],
+            command=lambda: self.change_background_color_mode(turn=True),
+            checkable=True,
+            initial_value=True)
+        self.settings_menu.addAction(self.background_action)
+        self.addAction(
+            self.get_action(command=self.close_window, shortcut='Ctrl+Q'))
 
         self.search_box_open = False
         self.current_line_number = 1
@@ -375,13 +537,24 @@ class Editor(QtWidgets.QMainWindow):
         current_label.adjustSize()
         return current_label
 
-    def get_action(self, text='', command=None, icon=None, shortcut=None):
+    def get_action(self,
+                   text='',
+                   command=None,
+                   icon=None,
+                   shortcut=None,
+                   checkable=False,
+                   initial_value=False,
+                   **kwargs):
         current_action = QtWidgets.QAction(
-            QtGui.QIcon() if icon is None else QtGui.QIcon(icon), text, self)
+            QtGui.QIcon() if icon is None else QtGui.QIcon(icon), text, self,
+            **kwargs)
         if command is not None:
             current_action.triggered.connect(command)
         if shortcut is not None:
             current_action.setShortcut(shortcut)
+        if checkable:
+            current_action.setCheckable(True)
+            current_action.setChecked(initial_value)
         return current_action
 
     def close_window(self):
@@ -423,18 +596,15 @@ class Editor(QtWidgets.QMainWindow):
             self.ask_save_window.not_save_button.move(x=90, y=100)
             self.ask_save_window.cancel_button.move(x=200, y=100)
         else:
-            self.destroy()
-            self.save_config(True, False)
+            self.close()
 
     def save_and_quit(self):
         self.save_current_file()
         if self.current_filename_path:
-            self.destroy()
-            self.save_config(True, False)
+            self.close()
 
     def destroy_and_quit(self):
-        self.destroy()
-        self.save_config(True, False)
+        self.close()
 
     def editor_config(self):
         if self.current_config_window is not None and self.current_config_window.isVisible(
@@ -461,38 +631,18 @@ class Editor(QtWidgets.QMainWindow):
             f'Line {self.current_line_number} Col {self.current_column_number}'
         )
 
-    def change_font_size(self, e):
-        num = e.delta // 120
-        self.font_size += num
-        if self.font_size < 1:
-            self.font_size = 1
-        config_dict['font_size'] = self.font_size
-        self.get_config_dict['font_size'] = str(self.font_size)
-        self.inputs.configure(font=(self.font_type, self.font_size))
-        self.outputs.configure(font=(self.font_type, self.font_size))
-
     def change_background_color_mode(self, turn=True):
         if turn:
-            self.bg_mode = 'white' if self.bg_mode == 'black' else 'black'
+            if self.bg_mode == 'black':
+                self.bg_mode = 'white'
+            else:
+                self.bg_mode = 'black'
         if self.bg_mode == 'white':
-            self.inputs.configure(bg=self.day_color,
-                                  fg='black',
-                                  insertbackground='black')
-            self.outputs.configure(bg=self.day_color,
-                                   fg='black',
-                                   insertbackground='black')
-            self.bg_mode = 'white'
-            self.turn_bg_mode.configure(
-                text=current_language_dict['Light Off'])
+            self.inputs.setStyleSheet("background-color: white; color: black")
+            self.outputs.setStyleSheet("background-color: white; color: black")
         elif self.bg_mode == 'black':
-            self.inputs.configure(background=self.night_color,
-                                  foreground='white',
-                                  insertbackground='white')
-            self.outputs.configure(background=self.night_color,
-                                   foreground='white',
-                                   insertbackground='white')
-            self.bg_mode = 'black'
-            self.turn_bg_mode.configure(text=current_language_dict['Light On'])
+            self.inputs.setStyleSheet("background-color: black; color: white")
+            self.outputs.setStyleSheet("background-color: black; color: white")
         if turn:
             config_dict['background_mode'] = self.bg_mode
 
@@ -519,9 +669,8 @@ class Editor(QtWidgets.QMainWindow):
         app.setStyleSheet(current_stylesheet)
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
-        self.syntax_highlight = config_dict['syntax_highlight']
-        #for each in self.syntax_highlight:
-        #self.inputs.tag_configure(each, foreground=each)
+        if self.is_syntax:
+            self.highlight = Highlighter(self.inputs.document())
 
         try:
             self.font_size = eval(self.get_config_dict['font_size'])
@@ -589,38 +738,6 @@ class Editor(QtWidgets.QMainWindow):
                 except:
                     pass
 
-    def syntax_highlight_func(self):
-        end_index = self.inputs.index(END)
-        start_x = self.inputs.index(INSERT).split('.')[0]
-        for color, texts in self.syntax_highlight.items():
-            self.inputs.tag_remove(color, f'{start_x}.0', END)
-            for i in texts:
-                start_index = '1.0'
-                current_last_index = '1.0'
-                while self.inputs.compare(start_index, '<', end_index):
-                    current_text_index = self.inputs.search(i,
-                                                            start_index,
-                                                            stopindex=END)
-                    if current_text_index:
-                        word_length = len(i)
-                        x, y = current_text_index.split('.')
-                        current_last_index = f"{x}.{int(y)+word_length}"
-                        next_index_end = f"{x}.{int(y)+2*word_length}"
-                        last_index_start = f"{x}.{int(y)-word_length}"
-                        if self.inputs.get(
-                                current_last_index,
-                                next_index_end) != i and self.inputs.get(
-                                    last_index_start, current_text_index) != i:
-                            self.inputs.tag_add(color, current_text_index,
-                                                current_last_index)
-                        start_index = current_last_index
-                    else:
-                        x, y = start_index.split('.')
-                        if self.inputs.get(start_index) == '\n':
-                            x = int(x) + 1
-                        y = int(y) + 1
-                        start_index = f'{x}.{y}'
-
     def input_changed(self):
         self.get_current_line_column()
         current_text = self.inputs.toPlainText()
@@ -631,46 +748,41 @@ class Editor(QtWidgets.QMainWindow):
         if self.quit or (not self.is_realtime):
             self.quit = False
             return
-        global function_names
-        function_names = list(set(musicpy_vars + list(locals().keys())))
-        if self.is_syntax:
-            #self.syntax_highlight_func()
-            pass
         self.pre_input = self.inputs.toPlainText()
         self.runs()
 
     def check_realtime(self):
-        value = self.realtime_box.isChecked()
+        value = self.realtime_action.isChecked()
         if value:
-            self.is_realtime = 1
+            self.is_realtime = True
         else:
-            self.is_realtime = 0
+            self.is_realtime = False
             self.quit = True
 
     def check_print(self):
-        self.is_print = self.print_box.isChecked()
+        self.is_print = self.print_action.isChecked()
 
     def check_syntax(self):
-        self.is_syntax = self.syntax_box.isChecked()
+        self.is_syntax = self.syntax_action.isChecked()
+        self.highlight.setDocument(
+            self.inputs.document() if self.is_syntax else None)
 
     def play_select_text(self):
         try:
-            selected_text = self.inputs.selection_get()
+            selected_text = self.inputs.textCursor().selectedText()
             exec(f"play({selected_text})")
         except:
-            self.outputs.delete('1.0', END)
-            self.outputs.insert(
-                END,
+            self.outputs.clear()
+            self.outputs.insertPlainText(
                 current_language_dict['The codes selected cannot be played'])
 
     def visualize_play_select_text(self):
         try:
-            selected_text = self.inputs.selection_get()
+            selected_text = self.inputs.textCursor().selectedText()
             exec(f"write({selected_text}, name='temp.mid')")
         except:
-            self.outputs.delete('1.0', END)
-            self.outputs.insert(
-                END,
+            self.outputs.clear()
+            self.outputs.insertPlainText(
                 current_language_dict['The codes selected cannot be played'])
             return
         visualize.start()
@@ -690,103 +802,16 @@ class Editor(QtWidgets.QMainWindow):
         pygame.mixer.music.stop()
 
     def close_search_box(self):
-        for each in self.search_inds_list:
-            ind1, ind2 = each
-            self.inputs.tag_remove('highlight', ind1, ind2)
-            self.inputs.tag_remove('highlight_select', ind1, ind2)
-        self.search_box.destroy()
-        self.search_box_open = False
+        pass
 
     def search_words(self):
-        if not self.search_box_open:
-            self.search_box_open = True
-        else:
-            self.search_box.focus_set()
-            self.search_entry.focus_set()
-            return
-        self.search_box = Toplevel(self, bg=self.background_color)
-        self.search_box.protocol("WM_DELETE_WINDOW", self.close_search_box)
-        self.search_box.title(current_language_dict['Search'])
-        self.search_box.setMinimumSize(300, 200)
-        self.search_box.geometry('250x150+350+300')
-        self.search_text = QtWidgets.QLabel(
-            self.search_box,
-            text=current_language_dict['Please input text you want to search'])
-        self.search_text.move(x=0, y=0)
-        self.search_contents = StringVar()
-        self.search_contents.trace_add('write', self.search)
-        self.search_entry = Entry(self.search_box,
-                                  textvariable=self.search_contents)
-        self.search_entry.move(x=0, y=30)
-        self.search_entry.focus_set()
-        self.search_inds = 0
-        self.search_inds_list = []
-        self.inputs.tag_configure('highlight',
-                                  background=self.search_highlight_color[0])
-        self.inputs.tag_configure('highlight_select',
-                                  background=self.search_highlight_color[1])
-        self.search_up = ttk.Button(self.search_box,
-                                    text=current_language_dict['Previous'],
-                                    command=lambda: self.change_search_ind(-1))
-        self.search_down = ttk.Button(
-            self.search_box,
-            text=current_language_dict['Next'],
-            command=lambda: self.change_search_ind(1))
-        self.search_up.move(x=0, y=60)
-        self.search_down.move(x=100, y=60)
-        self.case_sensitive = False
-        self.check_case_sensitive = IntVar()
-        self.check_case_sensitive.set(0)
-        self.case_sensitive_box = QtWidgets.QCheckBox(
-            self.search_box,
-            text=current_language_dict['Case sensitive'],
-            variable=self.check_case_sensitive)
-        self.case_sensitive_box.move(x=170, y=30)
+        pass
 
     def change_search_ind(self, ind):
-        length = len(self.search_inds_list)
-        if self.search_inds in range(length):
-            current_inds = self.search_inds_list[self.search_inds]
-            self.inputs.tag_remove('highlight_select', current_inds[0],
-                                   current_inds[1])
-        self.search_inds += ind
-        if self.search_inds < 0:
-            self.search_inds = length - 1
-        elif self.search_inds >= length:
-            self.search_inds = 0
-        if self.search_inds in range(length):
-            current_inds = self.search_inds_list[self.search_inds]
-            self.inputs.tag_add('highlight_select', current_inds[0],
-                                current_inds[1])
-            self.inputs.see(current_inds[1])
+        pass
 
     def search(self, *args):
-        all_text = self.inputs.toPlainText()
-
-        for each in self.search_inds_list:
-            ind1, ind2 = each
-            self.inputs.tag_remove('highlight', ind1, ind2)
-            self.inputs.tag_remove('highlight_select', ind1, ind2)
-        current = self.search_contents.get()
-        self.case_sensitive = self.check_case_sensitive.get()
-        if not self.case_sensitive:
-            all_text = all_text.lower()
-            current = current.lower()
-        self.search_inds_list = [[
-            m.start(), m.end()
-        ] for m in re.finditer(re.escape(current), all_text)]
-        for each in self.search_inds_list:
-            ind1, ind2 = each
-            newline = "\n"
-            ind1 = f'{all_text[:ind1].count(newline)+1}.{ind1 - all_text[:ind1].rfind(newline) - 1}'
-            ind2 = f'{all_text[:ind2].count(newline)+1}.{ind2 - all_text[:ind2].rfind(newline) - 1}'
-            each[0] = ind1
-            each[1] = ind2
-        self.outputs.delete('1.0', END)
-        if self.search_inds_list:
-            for each in self.search_inds_list:
-                ind1, ind2 = each
-                self.inputs.tag_add('highlight', ind1, ind2)
+        pass
 
 
 def get_stylesheet():
@@ -821,6 +846,7 @@ def get_stylesheet():
 
 if __name__ == '__main__':
     function_names = list(set(musicpy_vars))
+    function_names.sort()
     app = QtWidgets.QApplication(sys.argv)
     current_stylesheet = get_stylesheet()
     app.setStyleSheet(current_stylesheet)
