@@ -17,7 +17,7 @@
     "font_type": "Consolas",
     "font_size": 12,
     "background_mode": "white",
-    "grammar_highlight": {
+    "syntax_highlight": {
         "red": [
             "/",
             "@",

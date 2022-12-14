@@ -57,7 +57,7 @@ class Dialog(QtWidgets.QMainWindow):
 
 class config_window(QtWidgets.QMainWindow):
 
-    def __init__(self, dpi=None, config_path=''):
+    def __init__(self, dpi=None, config_path='', parent=None):
         super().__init__()
         if sys.platform == 'win32':
             self.setWindowIcon(QtGui.QIcon('resources/piano.ico'))
@@ -66,6 +66,7 @@ class config_window(QtWidgets.QMainWindow):
         elif sys.platform == 'darwin':
             self.setWindowIcon(QtGui.QIcon('resources/piano_icon.icns'))
         self.config_path = config_path
+        self.parent = parent
         self.whole_config = None
         self.current_config = self.whole_config
         self.current_path = []
@@ -458,6 +459,11 @@ class config_window(QtWidgets.QMainWindow):
                     changed = True
             if changed:
                 self.show_saved()
+                if self.parent is not None:
+                    try:
+                        self.parent.reload_config()
+                    except:
+                        pass
                 if self.current_path:
                     self.reload_current_file()
                     self.load_current_path()

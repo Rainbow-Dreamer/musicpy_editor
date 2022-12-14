@@ -5,6 +5,7 @@ __pycache__/
 musicpy
 temp.mid
 plans.txt
+last_path.txt
 
 # C extensions
 *.so

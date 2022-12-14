@@ -74,6 +74,7 @@ def set_font(font, dpi):
         font.setPointSize(font.pointSize() * (96.0 / dpi))
     return font
 
+
 class Dialog(QtWidgets.QMainWindow):
 
     def __init__(self, caption, directory, filter, mode=0):
@@ -87,6 +88,7 @@ class Dialog(QtWidgets.QMainWindow):
         elif mode == 2:
             self.filename = QtWidgets.QFileDialog.getSaveFileName(
                 self, caption=caption, directory=directory, filter=filter)
+
 
 class CompletionTextEdit(QtWidgets.QPlainTextEdit):
 
@@ -240,9 +242,6 @@ class Editor(QtWidgets.QMainWindow):
         self.outputs_text.move(0, 350)
         self.outputs.setFixedSize(700, 300)
         self.outputs.move(0, 380)
-        self.run_button = self.get_button(text=current_language_dict['Run'],
-                                          command=lambda: self.runs(mode=1))
-        self.run_button.move(160, 0)
         self.realtime_box = self.get_checkbutton(
             text=current_language_dict['Real Time'],
             command=self.check_realtime)
@@ -261,12 +260,8 @@ class Editor(QtWidgets.QMainWindow):
         self.syntax_box.setChecked(True)
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
-        self.wraplines_number = config_dict['wraplines_number']
-        self.wraplines_button = self.get_button(
-            text=current_language_dict['Word Wrap'], command=self.wraplines)
         self.print_box.move(550, 0)
         self.syntax_box.move(710, 0)
-        self.wraplines_button.move(750, 400)
         self.is_print = True
         self.pre_input = ''
         self.changed = False
@@ -274,44 +269,36 @@ class Editor(QtWidgets.QMainWindow):
         self.inputs.setCompleter(self.input_completer)
         self.menu_bar = self.menuBar()
         self.file_menu = self.menu_bar.addMenu(current_language_dict['File'])
-        self.file_menu.addAction(self.get_action(text=current_language_dict['Open'], command=self.openfile, shortcut='Ctrl+W'))
-        self.menu_bar.addAction(self.get_action(text=current_language_dict['Save'], command=self.save_current_file, shortcut='Ctrl+S'))
+        self.file_menu.addAction(
+            self.get_action(text=current_language_dict['Open'],
+                            command=self.openfile,
+                            shortcut='Ctrl+W'))
+        self.file_menu.addAction(
+            self.get_action(text=current_language_dict['Save'],
+                            command=self.save_current_file,
+                            shortcut='Ctrl+S'))
+        self.file_menu.addAction(
+            self.get_action(text=current_language_dict['Save As'],
+                            command=self.save))
+        self.file_menu.addAction(
+            self.get_action(text=current_language_dict['Import MIDI File'],
+                            command=self.read_midi_file,
+                            shortcut='Ctrl+D'))
+        self.file_menu.addAction(
+            self.get_action(text=current_language_dict['Settings'],
+                            command=self.editor_config))
+        self.file_menu.addAction(
+            self.get_action(text=current_language_dict['Visualize Settings'],
+                            command=self.visualize_config))
+        self.menu_bar.addAction(
+            self.get_action(text=current_language_dict['Save'],
+                            command=self.save_current_file))
+        self.menu_bar.addAction(
+            self.get_action(text=current_language_dict['Run'],
+                            command=lambda: self.runs(mode=1),
+                            shortcut='Ctrl+R'))
         self.last_save = self.inputs.toPlainText()
         '''
-        self.file_top = self.get_button(text=current_language_dict['File'],
-                                   command=self.file_top_make_menu)
-        self.file_menu = Menu(
-            self,
-            tearoff=0,
-            bg=self.background_color,
-            activebackground=self.active_background_color,
-            activeforeground=self.active_foreground_color,
-            disabledforeground=self.disabled_foreground_color)
-        self.file_menu.add_command(label=current_language_dict['Open'],
-                                   command=self.openfile,
-                                   foreground=self.foreground_color)
-        self.file_menu.add_command(label=current_language_dict['Save'],
-                                   command=self.save_current_file,
-                                   foreground=self.foreground_color)
-        self.file_menu.add_command(label=current_language_dict['Save As'],
-                                   command=self.save,
-                                   foreground=self.foreground_color)
-        self.file_menu.add_command(label=current_language_dict['Settings'],
-                                   command=self.config_options,
-                                   foreground=self.foreground_color)
-        self.file_menu.add_command(
-            label=current_language_dict['Import MIDI File'],
-            command=self.read_midi_file,
-            foreground=self.foreground_color)
-        self.file_menu.add_command(
-            label=current_language_dict['Visualize Settings'],
-            command=self.visualize_config,
-            foreground=self.foreground_color)
-        self.file_top.move(x=0, y=0)
-        self.config_button = ttk.Button(self,
-                                        text=current_language_dict['Settings'],
-                                        command=self.config_options)
-        self.config_button.move(x=320, y=0)
         syntax_highlight = config_dict['syntax_highlight']
         for each in syntax_highlight:
             syntax_highlight[each].sort(key=lambda s: len(s), reverse=True)
@@ -321,9 +308,8 @@ class Editor(QtWidgets.QMainWindow):
         '''
         self.current_filename_path = None
         self.inputs.textChanged.connect(self.input_changed)
-        QtWidgets.QShortcut('Ctrl+E', self).activated.connect(self.stop_play_midi)
-        QtWidgets.QShortcut('Ctrl+D', self).activated.connect(self.read_midi_file)
-        QtWidgets.QShortcut('Ctrl+R', self).activated.connect(self.runs)
+        QtWidgets.QShortcut('Ctrl+E',
+                            self).activated.connect(self.stop_play_midi)
         '''
         self.bg_mode = config_dict['background_mode']
         self.turn_bg_mode = ttk.Button(
@@ -354,20 +340,17 @@ class Editor(QtWidgets.QMainWindow):
                          lambda e: self.visualize_play_select_text())
         self.protocol("WM_DELETE_WINDOW", self.close_window)
         '''
-        '''
+
         self.search_box_open = False
-        self.config_box_open = False
-        self.visualize_config_box_open = False
         self.current_line_number = 1
         self.current_column_number = 1
-        self.line_column = QtWidgets.QLabel(
-            self,
+        self.line_column = self.get_label(
             text=
             f'Line {self.current_line_number} Col {self.current_column_number}'
         )
         self.line_column.move(750, 500)
-        self.get_current_line_column()
-        '''
+        self.current_config_window = None
+        self.current_visual_config_window = None
         self.show()
 
     def get_button(self, command=None, **kwargs):
@@ -391,9 +374,10 @@ class Editor(QtWidgets.QMainWindow):
         current_label.setFont(self.current_font)
         current_label.adjustSize()
         return current_label
-    
+
     def get_action(self, text='', command=None, icon=None, shortcut=None):
-        current_action = QtWidgets.QAction(QtGui.QIcon() if icon is None else QtGui.QIcon(icon), text, self)
+        current_action = QtWidgets.QAction(
+            QtGui.QIcon() if icon is None else QtGui.QIcon(icon), text, self)
         if command is not None:
             current_action.triggered.connect(command)
         if shortcut is not None:
@@ -452,28 +436,30 @@ class Editor(QtWidgets.QMainWindow):
         self.destroy()
         self.save_config(True, False)
 
-    def visualize_config(self):
-        if self.visualize_config_box_open:
+    def editor_config(self):
+        if self.current_config_window is not None and self.current_config_window.isVisible(
+        ):
             return
-        self.visualize_config_box_open = True
-        app = QtWidgets.QApplication(sys.argv)
-        dpi = (app.screens()[0]).logicalDotsPerInch()
-        current_config_window = config_window(dpi=dpi,
-                                              config_path=piano_config_path)
-        app.exec()
-        del app
-        self.visualize_config_box_open = False
+        self.current_config_window = config_window(dpi=self.dpi,
+                                                   config_path=config_path,
+                                                   parent=self)
+        self.current_config_window.show()
+
+    def visualize_config(self):
+        if self.current_visual_config_window is not None and self.current_visual_config_window.isVisible(
+        ):
+            return
+        self.current_visual_config_window = config_window(
+            dpi=self.dpi, config_path=piano_config_path)
+        self.current_visual_config_window.show()
 
     def get_current_line_column(self):
-        ind = self.inputs.index(INSERT)
-        line, column = ind.split('.')
-        self.current_line_number = int(line)
-        self.current_column_number = int(column)
-        self.line_column.config(
-            text=
+        self.current_line_number = self.inputs.textCursor().blockNumber() + 1
+        self.current_column_number = self.inputs.textCursor().columnNumber(
+        ) + 1
+        self.line_column.setText(
             f'Line {self.current_line_number} Col {self.current_column_number}'
         )
-        self.after(10, self.get_current_line_column)
 
     def change_font_size(self, e):
         num = e.delta // 120
@@ -514,7 +500,7 @@ class Editor(QtWidgets.QMainWindow):
         filename = Dialog(
             caption=current_language_dict['Choose Files'],
             directory='',
-            filter=f'{current_language_dict["All files"]} (*)').filename[0]        
+            filter=f'{current_language_dict["All files"]} (*)').filename[0]
         if filename:
             self.current_filename_path = filename
             try:
@@ -525,338 +511,17 @@ class Editor(QtWidgets.QMainWindow):
             except:
                 pass
 
-    def file_top_make_menu(self):
-        self.file_menu.tk_popup(x=self.winfo_pointerx(),
-                                y=self.winfo_pointery())
-
-    def wraplines(self):
-        N = self.eachline_character
-        text = self.outputs.get('1.0', END)
-        K = len(text)
-        text = ('\n' * self.wraplines_number).join(
-            [text[i:i + N] for i in range(0, K, N)])
-        self.outputs.delete('1.0', END)
-        self.outputs.insert(END, text)
-
-    def close_config_box(self):
-        self.config_window.destroy()
-        self.config_box_open = False
-
-    def close_visualize_config_box(self):
-        self.visualize_config_window.destroy()
-        self.visualize_config_box_open = False
-        os.chdir('../')
-
-    def insert_bool(self, content):
-        self.config_contents.delete('1.0', END)
-        self.config_contents.insert(END, content)
-        self.config_change()
-
-    def config_change(self):
-        current = self.config_contents.toPlainText()
-        current_config = self.config_window.choose_config_options.get(ANCHOR)
-        self.get_config_dict[current_config] = current
-
-    def change_search_inds(self, num):
-        self.config_window.search_inds += num
-        if self.config_window.search_inds < 0:
-            self.config_window.search_inds = 0
-        if self.config_window.search_inds_list:
-            search_num = len(self.config_window.search_inds_list)
-            if self.config_window.search_inds >= search_num:
-                self.config_window.search_inds = search_num - 1
-            first = self.config_window.search_inds_list[
-                self.config_window.search_inds]
-            self.config_window.choose_config_options.selection_clear(0, END)
-            self.config_window.choose_config_options.selection_set(first)
-            self.config_window.choose_config_options.selection_anchor(first)
-            self.config_window.choose_config_options.see(first)
-            self.show_current_config_options()
-
-    def search_config(self, *args):
-        current = self.config_window.search_entry.get()
-        self.config_window.search_inds_list = [
-            i for i in range(self.config_window.options_num)
-            if current in all_config_options[i]
-        ]
-        if self.config_window.search_inds_list:
-            self.config_window.search_inds = 0
-            first = self.config_window.search_inds_list[
-                self.config_window.search_inds]
-            self.config_window.choose_config_options.selection_clear(0, END)
-            self.config_window.choose_config_options.selection_set(first)
-            self.config_window.choose_config_options.selection_anchor(first)
-            self.config_window.choose_config_options.see(first)
-            self.show_current_config_options()
-        else:
-            self.config_window.choose_config_options.selection_clear(0, END)
-
-    def show_current_config_options(self):
-        current_config = self.config_window.choose_config_options.get(ANCHOR)
-        self.config_window.config_name.configure(text=current_config)
-        self.config_contents.delete('1.0', END)
-        current_config_value = self.get_config_dict[current_config]
-        self.config_contents.insert(END, current_config_value)
-
-    def choose_filename(self):
-        filename = filedialog.askopenfilename(
-            parent=self.config_window,
-            title=current_language_dict['Choose Filename'],
-            filetypes=((current_language_dict['All files'], "*"), ))
-        self.config_contents.delete('1.0', END)
-        self.config_contents.insert(END, filename)
-        self.config_change()
-
-    def choose_directory(self):
-        directory = filedialog.askdirectory(
-            parent=self.config_window,
-            title=current_language_dict['Choose Directory'],
-        )
-        self.config_contents.delete('1.0', END)
-        self.config_contents.insert(END, directory)
-        self.config_change()
-
-    def config_options(self):
-        if self.config_box_open:
-            self.config_window.focus_set()
-            return
-        self.get_config_dict = copy(config_dict)
-        self.get_config_dict = {
-            i: str(j)
-            for i, j in self.get_config_dict.items()
-        }
-        self.config_box_open = True
-        self.config_window = Toplevel(self, bg=self.background_color)
-        self.config_window.setMinimumSize(800, 650)
-        self.config_window.title(current_language_dict['Settings'])
-        self.config_window.protocol("WM_DELETE_WINDOW", self.close_config_box)
-
-        global all_config_options
-        all_config_options = list(self.get_config_dict.keys())
-        self.options_num = len(all_config_options)
-        global all_config_options_ind
-        all_config_options_ind = {
-            all_config_options[i]: i
-            for i in range(self.options_num)
-        }
-        global config_original
-        config_original = all_config_options.copy()
-        global alpha_config
-        alpha_config = all_config_options.copy()
-        alpha_config.sort(key=lambda s: s.lower())
-        self.config_window.options_num = len(all_config_options)
-        self.config_window.config_options_bar = Scrollbar(self.config_window)
-        self.config_window.config_options_bar.move(x=235,
-                                                   y=120,
-                                                   height=170,
-                                                   anchor=CENTER)
-        self.config_window.choose_config_options = Listbox(
-            self.config_window,
-            yscrollcommand=self.config_window.config_options_bar.set)
-        for k in config_dict:
-            self.config_window.choose_config_options.insert(END, k)
-        self.config_window.choose_config_options.move(x=0, y=30, width=220)
-        self.config_window.config_options_bar.config(
-            command=self.config_window.choose_config_options.yview)
-        self.config_window.config_name = QtWidgets.QLabel(self.config_window,
-                                                          text='')
-        self.config_window.config_name.move(x=300, y=20)
-        self.config_window.choose_config_options.bind(
-            '<<ListboxSelect>>', lambda e: self.show_current_config_options())
-        self.config_contents = Text(self.config_window,
-                                    undo=True,
-                                    autoseparators=True,
-                                    maxundo=-1)
-        self.config_contents.bind('<KeyRelease>',
-                                  lambda e: self.config_change())
-        self.config_contents.move(x=350, y=50, width=400, height=200)
-        self.config_window.choose_filename_button = ttk.Button(
-            self.config_window,
-            text=current_language_dict['Choose Filename'],
-            command=self.choose_filename,
-            width=20)
-        self.config_window.choose_directory_button = ttk.Button(
-            self.config_window,
-            text=current_language_dict['Choose Directory'],
-            command=self.choose_directory,
-            width=20)
-        self.config_window.choose_filename_button.move(x=0, y=250)
-        self.config_window.choose_directory_button.move(x=0, y=290)
-        self.config_window.search_text = QtWidgets.QLabel(
-            self.config_window,
-            text=current_language_dict['Search config options'])
-        self.config_window.search_text.move(x=30, y=370)
-        self.config_search_contents = StringVar()
-        self.config_search_contents.trace_add('write', self.search_config)
-        self.config_window.search_entry = Entry(
-            self.config_window, textvariable=self.config_search_contents)
-        self.config_window.search_entry.move(x=170, y=370)
-        self.config_window.search_inds = 0
-        self.config_window.up_button = ttk.Button(
-            self.config_window,
-            text=current_language_dict['Previous'],
-            command=lambda: self.change_search_inds(-1),
-            width=8)
-        self.config_window.down_button = ttk.Button(
-            self.config_window,
-            text=current_language_dict['Next'],
-            command=lambda: self.change_search_inds(1),
-            width=8)
-        self.config_window.up_button.move(x=170, y=400)
-        self.config_window.down_button.move(x=250, y=400)
-        self.config_window.search_inds_list = []
-        self.config_window.value_dict = config_dict
-        self.config_window.choose_bool1 = ttk.Button(
-            self.config_window,
-            text='True',
-            command=lambda: self.insert_bool('True'))
-        self.config_window.choose_bool2 = ttk.Button(
-            self.config_window,
-            text='False',
-            command=lambda: self.insert_bool('False'))
-        self.config_window.choose_bool1.move(x=150, y=270)
-        self.config_window.choose_bool2.move(x=250, y=270)
-        save_button = ttk.Button(self.config_window,
-                                 text=current_language_dict['Save'],
-                                 command=self.save_config)
-        save_button.move(x=30, y=330)
-        self.saved_label = QtWidgets.QLabel(
-            self.config_window,
-            text=current_language_dict['Successfully saved'])
-        self.choose_font = ttk.Button(
-            self.config_window,
-            text=current_language_dict['Choose Font'],
-            command=self.get_font)
-        self.choose_font.move(x=230, y=460)
-        self.whole_fonts = list(font.families())
-        self.whole_fonts.sort(
-            key=lambda x: x if not x.startswith('@') else x[1:])
-        self.font_list_bar = ttk.Scrollbar(self.config_window)
-        self.font_list_bar.move(x=190, y=520, height=170, anchor=CENTER)
-        self.font_list = Listbox(self.config_window,
-                                 yscrollcommand=self.font_list_bar.set,
-                                 width=25)
-        for k in self.whole_fonts:
-            self.font_list.insert(END, k)
-        self.font_list.move(x=0, y=430)
-        self.font_list_bar.config(command=self.font_list.yview)
-        current_font_ind = self.whole_fonts.index(self.font_type)
-        self.font_list.selection_set(current_font_ind)
-        self.font_list.see(current_font_ind)
-        self.change_sort_button = ttk.Button(
-            self.config_window,
-            text="sort in order of appearance",
-            command=self.change_sort)
-        self.sort_mode = 1
-        self.change_sort_button.move(x=150, y=330, width=180)
-
-        self.reload_button = ttk.Button(self.config_window,
-                                        text=current_language_dict['Reload'],
-                                        command=self.reload)
-        self.reload_button.move(x=230, y=510)
-
-    def reload(self):
-        self.destroy()
-        self.save_config(True, False)
-        try:
-            os.startfile(__file__)
-        except:
-            os.startfile(sys.executable)
-
-    def change_sort(self):
-        global all_config_options
-        if self.sort_mode == 0:
-            self.sort_mode = 1
-            self.change_sort_button.config(text='sort in order of appearance')
-            all_config_options = config_original.copy()
-            self.config_window.choose_config_options.delete(0, END)
-            for k in all_config_options:
-                self.config_window.choose_config_options.insert(END, k)
-        else:
-            self.sort_mode = 0
-            self.change_sort_button.config(text='sort in alphabetical order')
-            all_config_options = alpha_config.copy()
-            self.config_window.choose_config_options.delete(0, END)
-            for k in all_config_options:
-                self.config_window.choose_config_options.insert(END, k)
-        self.search_config()
-
-    def get_font(self):
-        self.font_type = self.font_list.get(ACTIVE)
-        self.font_size = eval(self.get_config_dict['font_size'])
-        self.inputs.configure(font=(self.font_type, self.font_size))
-        self.outputs.configure(font=(self.font_type, self.font_size))
-        self.get_config_dict['font_type'] = str(self.font_type)
-        config_dict['font_type'] = self.font_type
-        config_dict['font_size'] = self.font_size
-
-    def save_config(self, outer=False, reload=True):
-        if not outer:
-            for each in config_dict:
-                original = config_dict[each]
-                changed = self.get_config_dict[each]
-                if str(original) != changed:
-                    if not isinstance(original, str):
-                        config_dict[each] = eval(changed)
-                    else:
-                        config_dict[each] = changed
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(config_dict,
-                      f,
-                      indent=4,
-                      separators=(',', ': '),
-                      ensure_ascii=False)
-        if not outer:
-            self.saved_label.move(x=360, y=400)
-            self.after(600, self.saved_label.place_forget)
-        if reload:
-            self.reload_config()
-
-    def search_path(self, obj):
-        filename = filedialog.askopenfilename(
-            parent=self.config_window,
-            title=current_language_dict['Choose Files'],
-            filetypes=((current_language_dict['All files'], "*"), ))
-        if filename:
-            obj.delete(0, END)
-            obj.insert(END, filename)
-
     def reload_config(self):
-        try:
-            bg_path = config_dict['background_image']
-            if not bg_path:
-                self.bg_label.configure(image='')
-            else:
-                self.bg = PIL.Image.open(bg_path)
-                ratio = 600 / self.bg.height
-                self.bg = self.bg.resize(
-                    (int(self.bg.width * ratio), int(self.bg.height * ratio)),
-                    PIL.Image.ANTIALIAS)
-                self.bg = PIL.ImageTk.PhotoImage(self.bg)
-                self.bg_label.configure(image=self.bg)
-                bg_places = config_dict['background_places']
-                self.bg_label.move(x=bg_places[0], y=bg_places[1])
-
-        except:
-            bg_path = config_dict['background_image']
-            if not bg_path:
-                self.bg = ''
-            else:
-                self.bg = PIL.Image.open(bg_path)
-                ratio = 600 / self.bg.height
-                self.bg = self.bg.resize(
-                    (int(self.bg.width * ratio), int(self.bg.height * ratio)),
-                    PIL.Image.ANTIALIAS)
-                self.bg = PIL.ImageTk.PhotoImage(self.bg)
-                self.bg_label = QtWidgets.QLabel(self, image=self.bg)
-                bg_places = config_dict['background_places']
-                self.bg_label.move(x=bg_places[0], y=bg_places[1])
+        global config_dict
+        with open(config_path, encoding='utf-8') as f:
+            config_dict = json.load(f)
+        current_stylesheet = get_stylesheet()
+        app.setStyleSheet(current_stylesheet)
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
-        self.wraplines_number = config_dict['wraplines_number']
         self.syntax_highlight = config_dict['syntax_highlight']
-        for each in self.syntax_highlight:
-            self.inputs.tag_configure(each, foreground=each)
+        #for each in self.syntax_highlight:
+        #self.inputs.tag_configure(each, foreground=each)
 
         try:
             self.font_size = eval(self.get_config_dict['font_size'])
@@ -881,7 +546,7 @@ class Editor(QtWidgets.QMainWindow):
         filename = Dialog(caption=current_language_dict["Save Input Text"],
                           directory='',
                           filter=f'{current_language_dict["All files"]} (*)',
-                          mode=2).filename[0]        
+                          mode=2).filename[0]
         if filename:
             current_filename, file_extension = os.path.splitext(filename)
             if not file_extension:
@@ -957,11 +622,12 @@ class Editor(QtWidgets.QMainWindow):
                         start_index = f'{x}.{y}'
 
     def input_changed(self):
+        self.get_current_line_column()
         current_text = self.inputs.toPlainText()
         if current_text != self.last_save:
             self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]} *')
         else:
-            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')        
+            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')
         if self.quit or (not self.is_realtime):
             self.quit = False
             return
@@ -974,7 +640,6 @@ class Editor(QtWidgets.QMainWindow):
         self.runs()
 
     def check_realtime(self):
-        print2(111, flush=True)
         value = self.realtime_box.isChecked()
         if value:
             self.is_realtime = 1
@@ -987,32 +652,6 @@ class Editor(QtWidgets.QMainWindow):
 
     def check_syntax(self):
         self.is_syntax = self.syntax_box.isChecked()
-
-    def cut(self):
-        self.inputs.event_generate("<<Cut>>")
-
-    def copy(self):
-        self.inputs.event_generate("<<Copy>>")
-
-    def paste(self):
-        self.inputs.event_generate('<<Paste>>')
-
-    def choose_all(self):
-        self.inputs.tag_add(SEL, '1.0', END)
-        self.inputs.mark_set(INSERT, END)
-        self.inputs.see(INSERT)
-
-    def inputs_undo(self):
-        try:
-            self.inputs.edit_undo()
-        except:
-            pass
-
-    def inputs_redo(self):
-        try:
-            self.inputs.edit_redo()
-        except:
-            pass
 
     def play_select_text(self):
         try:
@@ -1040,9 +679,12 @@ class Editor(QtWidgets.QMainWindow):
         filename = Dialog(
             caption=current_language_dict["Choose MIDI File"],
             directory='',
-            filter=f'{current_language_dict["MIDI File"]} (*.mid);{current_language_dict["All files"]} (*)').filename[0]        
+            filter=
+            f'{current_language_dict["MIDI File"]} (*.mid);{current_language_dict["All files"]} (*)'
+        ).filename[0]
         if filename:
-            self.inputs.insertPlainText(f"new_midi_file = read(\"{filename}\")\n")
+            self.inputs.insertPlainText(
+                f"new_midi_file = read(\"{filename}\")\n")
 
     def stop_play_midi(self):
         pygame.mixer.music.stop()
@@ -1151,7 +793,7 @@ def get_stylesheet():
     if config_dict['background_image']:
         bg_path = config_dict['background_image']
         bg_places = config_dict['background_places']
-        current_background_stylesheet = f'background-image: url("{bg_path}"); background-repeat: no-repeat; background-position: right; padding: {bg_places[0]}px {bg_places[1]}px {bg_places[2]}px {bg_places[3]}px; background-origin: content;}}'
+        current_background_stylesheet = f'background-image: url("{bg_path}"); background-repeat: no-repeat; background-position: right; padding: {bg_places[0]}px {bg_places[1]}px {bg_places[2]}px {bg_places[3]}px; background-origin: content;'
     else:
         current_background_stylesheet = ''
     result = f'''
