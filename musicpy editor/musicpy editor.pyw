@@ -49,8 +49,8 @@ print2 = print
 
 
 def print(obj):
-    root.outputs.insert(END, str(obj))
-    root.outputs.insert(END, '\n')
+    current_editor.outputs.insertPlainText(str(obj))
+    current_editor.outputs.insertPlainText('\n')
 
 
 def direct_play(filename):
@@ -74,6 +74,131 @@ def set_font(font, dpi):
         font.setPointSize(font.pointSize() * (96.0 / dpi))
     return font
 
+class Dialog(QtWidgets.QMainWindow):
+
+    def __init__(self, caption, directory, filter, mode=0):
+        super().__init__()
+        if mode == 0:
+            self.filename = QtWidgets.QFileDialog.getOpenFileName(
+                self, caption=caption, directory=directory, filter=filter)
+        elif mode == 1:
+            self.directory = QtWidgets.QFileDialog.getExistingDirectory(
+                self, caption=caption, directory=directory)
+        elif mode == 2:
+            self.filename = QtWidgets.QFileDialog.getSaveFileName(
+                self, caption=caption, directory=directory, filter=filter)
+
+class CompletionTextEdit(QtWidgets.QPlainTextEdit):
+
+    def __init__(self, parent=None, pairing_symbols=[]):
+        super().__init__(parent)
+        self._completer = None
+        self.pairing_symbols = pairing_symbols
+        self.pairing_symbols_left = [each[0] for each in self.pairing_symbols]
+        self.completion_prefix = ''
+        self.default_completer_keys = [
+            QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return, QtCore.Qt.Key_Escape,
+            QtCore.Qt.Key_Tab, QtCore.Qt.Key_Backtab
+        ]
+        self.special_words = "~!@#$%^&*()+{}|:\"<>?,./;'[]\\-="
+        self.current_completion_words = function_names
+
+    def setCompleter(self, c):
+
+        self._completer = c
+        c.setWidget(self)
+        c.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        c.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        c.activated.connect(self.insertCompletion)
+
+    def insertCompletion(self, completion):
+        if self._completer.widget() is not self:
+            return
+
+        tc = self.textCursor()
+        extra = len(completion) - len(self._completer.completionPrefix())
+        tc.movePosition(QtGui.QTextCursor.Left)
+        tc.movePosition(QtGui.QTextCursor.EndOfWord)
+
+        if self.completion_prefix.lower() != completion[-extra:].lower():
+            tc.insertText(completion[-extra:])
+            self.setTextCursor(tc)
+        if self.current_completion_words != function_names:
+            self._completer.setModel(
+                QtCore.QStringListModel(function_names, self._completer))
+            self.current_completion_words = function_names
+
+    def textUnderCursor(self):
+        tc = self.textCursor()
+        tc.select(QtGui.QTextCursor.WordUnderCursor)
+        return tc.selectedText()
+
+    def focusInEvent(self, e):
+        if self._completer is not None:
+            self._completer.setWidget(self)
+        super().focusInEvent(e)
+
+    def keyPressEvent(self, e):
+
+        isShortcut = False
+        current_text = e.text()
+
+        if current_text and current_text[-1] in self.pairing_symbols_left:
+            self._completer.popup().hide()
+            ind = self.pairing_symbols_left.index(current_text[-1])
+            current_pairing_symbol = self.pairing_symbols[ind][1]
+            super().keyPressEvent(e)
+            self.insertPlainText(current_pairing_symbol)
+            self.moveCursor(QtGui.QTextCursor.PreviousCharacter)
+            return
+
+        if self._completer is not None and self._completer.popup().isVisible():
+            if e.key() in self.default_completer_keys:
+                e.ignore()
+                return
+
+        if e.key() == QtCore.Qt.Key_Period:
+            current_whole_text = self.toPlainText()
+            current_row = current_whole_text.split('\n')[-1].replace(' ', '')
+            current_word = current_row.split(',')[-1]
+            try:
+                words = dir(eval(current_word))
+                super().keyPressEvent(e)
+                self._completer.setModel(
+                    QtCore.QStringListModel(words, self._completer))
+                self.current_completion_words = words
+                isShortcut = True
+            except:
+                pass
+
+        if self._completer is None or not isShortcut:
+            super().keyPressEvent(e)
+
+        ctrlOrShift = e.modifiers() & (QtCore.Qt.ControlModifier
+                                       | QtCore.Qt.ShiftModifier)
+        if self._completer is None or (ctrlOrShift and not current_text):
+            return
+        hasModifier = (e.modifiers() !=
+                       QtCore.Qt.NoModifier) and not ctrlOrShift
+        completionPrefix = self.textUnderCursor()
+        self.completion_prefix = completionPrefix
+        if not isShortcut and (hasModifier or len(current_text) == 0
+                               or len(completionPrefix) < 1
+                               or current_text[-1] in self.special_words):
+            self._completer.popup().hide()
+            return
+
+        if completionPrefix != self._completer.completionPrefix():
+            self._completer.setCompletionPrefix(completionPrefix)
+            self._completer.popup().setCurrentIndex(
+                self._completer.completionModel().index(0, 0))
+
+        cr = self.cursorRect()
+        cr.setWidth(
+            self._completer.popup().sizeHintForColumn(0) +
+            self._completer.popup().verticalScrollBar().sizeHint().width())
+        self._completer.complete(cr)
+
 
 class Editor(QtWidgets.QMainWindow):
 
@@ -90,40 +215,6 @@ class Editor(QtWidgets.QMainWindow):
         self.active_foreground_color = config_dict['active_foreground_color']
         self.disabled_foreground_color = config_dict[
             'disabled_foreground_color']
-        '''
-        style = ttk.Style()
-        style.theme_use('alt')
-        style.configure('TButton',
-                        background=self.background_color,
-                        foreground=self.foreground_color,
-                        borderwidth=0,
-                        focusthickness=3,
-                        focuscolor='none')
-        style.configure('TCheckbutton',
-                        background=self.background_color,
-                        foreground=self.foreground_color,
-                        borderwidth=0,
-                        focusthickness=3,
-                        focuscolor='none')
-        style.configure('TLabel',
-                        background=self.background_color,
-                        foreground=self.foreground_color)
-        style.configure('New.TButton',
-                        background=self.button_background_color,
-                        foreground=self.foreground_color,
-                        borderwidth=0,
-                        focusthickness=3,
-                        focuscolor='none')
-        style.map('TButton',
-                  background=[('active', self.active_background_color)],
-                  foreground=[('active', self.active_foreground_color)])
-        style.map('TCheckbutton',
-                  background=[('active', self.active_background_color)],
-                  foreground=[('active', self.active_foreground_color)])
-        style.map('New.TButton',
-                  background=[('active', self.active_background_color)],
-                  foreground=[('active', self.active_foreground_color)])
-        '''
         self.dpi = dpi
         self.get_config_dict = copy(config_dict)
         self.get_config_dict = {
@@ -136,7 +227,8 @@ class Editor(QtWidgets.QMainWindow):
             QtGui.QFont(self.font_type, self.font_size), self.dpi)
         self.inputs_text = self.get_label(
             text=current_language_dict['Input musicpy codes here'])
-        self.inputs = QtWidgets.QPlainTextEdit(self)
+        self.inputs = CompletionTextEdit(
+            self, pairing_symbols=config_dict['pairing_symbols'])
         self.inputs.setFixedSize(700, 200)
         self.inputs.setFont(self.current_font)
         self.inputs_text.move(0, 80)
@@ -149,7 +241,7 @@ class Editor(QtWidgets.QMainWindow):
         self.outputs.setFixedSize(700, 300)
         self.outputs.move(0, 380)
         self.run_button = self.get_button(text=current_language_dict['Run'],
-                                          command=self.runs)
+                                          command=lambda: self.runs(mode=1))
         self.run_button.move(160, 0)
         self.realtime_box = self.get_checkbutton(
             text=current_language_dict['Real Time'],
@@ -162,50 +254,31 @@ class Editor(QtWidgets.QMainWindow):
             text=current_language_dict["Don't use print"],
             command=self.check_print)
         self.print_box.setChecked(True)
-        self.is_auto = 1
-        self.auto_box = self.get_checkbutton(
-            text=current_language_dict['Autocomplete'],
-            command=self.check_auto)
-        self.auto_box.setChecked(True)
-        self.is_grammar = 1
-        self.grammar_box = self.get_checkbutton(
+        self.is_syntax = True
+        self.syntax_box = self.get_checkbutton(
             text=current_language_dict['Syntax Highlight'],
-            command=self.check_grammar)
-        self.grammar_box.setChecked(True)
+            command=self.check_syntax)
+        self.syntax_box.setChecked(True)
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
         self.wraplines_number = config_dict['wraplines_number']
         self.wraplines_button = self.get_button(
-            text=current_language_dict['Word Wrap'],
-            command=self.wraplines)
-        self.auto_box.move(current_language_dict['auto_box_place'], 0)
-        self.print_box.move(670, 0)
-        self.grammar_box.move(830, 0)
+            text=current_language_dict['Word Wrap'], command=self.wraplines)
+        self.print_box.move(550, 0)
+        self.syntax_box.move(710, 0)
         self.wraplines_button.move(750, 400)
-        
-
-        self.save_button = self.get_button(text=current_language_dict['Save'],
-                                      command=self.save_current_file)
-        self.save_button.move(50, 0)
-        self.is_print = 1
+        self.is_print = True
         self.pre_input = ''
-        self.start = 0
-        self.start2 = 0
         self.changed = False
+        self.input_completer = QtWidgets.QCompleter(function_names)
+        self.inputs.setCompleter(self.input_completer)
+        self.menu_bar = self.menuBar()
+        self.file_menu = self.menu_bar.addMenu(current_language_dict['File'])
+        self.file_menu.addAction(self.get_action(text=current_language_dict['Open'], command=self.openfile, shortcut='Ctrl+W'))
+        self.menu_bar.addAction(self.get_action(text=current_language_dict['Save'], command=self.save_current_file, shortcut='Ctrl+S'))
+        self.last_save = self.inputs.toPlainText()
         '''
-        self.auto_complete_menu = Listbox(self)
-        self.auto_complete_menu.bind("<<ListboxSelect>>",
-                                     lambda e: self.enter_choose())
-        self.update()
-        self.select_ind = 0
-        self.show_select = False
-        self.bind('<Up>', lambda e: self.change_select(-1))
-        self.bind('<Down>', lambda e: self.change_select(1))
-        self.bind('<Left>', lambda e: self.close_select())
-        self.bind('<Right>', lambda e: self.close_select())
-        self.bind('<Return>', lambda e: self.get_current_select())
-        self.file_top = ttk.Button(self,
-                                   text=current_language_dict['File'],
+        self.file_top = self.get_button(text=current_language_dict['File'],
                                    command=self.file_top_make_menu)
         self.file_menu = Menu(
             self,
@@ -239,15 +312,19 @@ class Editor(QtWidgets.QMainWindow):
                                         text=current_language_dict['Settings'],
                                         command=self.config_options)
         self.config_button.move(x=320, y=0)
-        grammar_highlight = config_dict['grammar_highlight']
-        for each in grammar_highlight:
-            grammar_highlight[each].sort(key=lambda s: len(s), reverse=True)
-        self.grammar_highlight = grammar_highlight
-        for each in self.grammar_highlight:
+        syntax_highlight = config_dict['syntax_highlight']
+        for each in syntax_highlight:
+            syntax_highlight[each].sort(key=lambda s: len(s), reverse=True)
+        self.syntax_highlight = syntax_highlight
+        for each in self.syntax_highlight:
             self.inputs.tag_configure(each, foreground=each)
-
-        self.auto_complete_run()
-        self.realtime_run()
+        '''
+        self.current_filename_path = None
+        self.inputs.textChanged.connect(self.input_changed)
+        QtWidgets.QShortcut('Ctrl+E', self).activated.connect(self.stop_play_midi)
+        QtWidgets.QShortcut('Ctrl+D', self).activated.connect(self.read_midi_file)
+        QtWidgets.QShortcut('Ctrl+R', self).activated.connect(self.runs)
+        '''
         self.bg_mode = config_dict['background_mode']
         self.turn_bg_mode = ttk.Button(
             self,
@@ -256,55 +333,8 @@ class Editor(QtWidgets.QMainWindow):
             command=self.change_background_color_mode)
         self.turn_bg_mode.move(x=240, y=0)
         self.change_background_color_mode(turn=False)
-        self.last_save = self.inputs.get('1.0', 'end-1c')
-
-        self.menubar = Menu(self,
-                            tearoff=False,
-                            bg=self.background_color,
-                            activebackground=self.active_background_color,
-                            activeforeground=self.active_foreground_color,
-                            disabledforeground=self.disabled_foreground_color)
-        self.menubar.add_command(label=current_language_dict['Cut'],
-                                 command=self.cut,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label=current_language_dict['Copy'],
-                                 command=self.copy,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label=current_language_dict['Paste'],
-                                 command=self.paste,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label=current_language_dict['Select All'],
-                                 command=self.choose_all,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label=current_language_dict['Undo'],
-                                 command=self.inputs_undo,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label=current_language_dict['Redo'],
-                                 command=self.inputs_redo,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(
-            label=current_language_dict['Play Selected Code'],
-            command=self.play_select_text,
-            foreground=self.foreground_color)
-        self.menubar.add_command(
-            label=current_language_dict['Play Selected Code Visually'],
-            command=self.visualize_play_select_text,
-            foreground=self.foreground_color)
-        self.menubar.add_command(
-            label=current_language_dict['Import MIDI File'],
-            command=self.read_midi_file,
-            foreground=self.foreground_color)
-        self.menubar.add_command(label=current_language_dict['Stop Playing'],
-                                 command=self.stop_play_midi,
-                                 foreground=self.foreground_color)
-        self.menubar.add_command(label=current_language_dict['Search'],
-                                 command=self.search_words,
-                                 foreground=self.foreground_color)
-        self.inputs.bind("<Button-1>", lambda e: self.close_select())
-        if sys.platform == 'darwin':
-            self.inputs.bind("<Button-2>", lambda e: self.rightKey(e))
-        else:
-            self.inputs.bind("<Button-3>", lambda e: self.rightKey(e))
+        '''
+        '''
         self.bind('<Control-a>', lambda e: self.choose_all())
         self.bind('<Control-f>', lambda e: self.search_words())
         self.bind('<Control-e>', lambda e: self.stop_play_midi())
@@ -323,8 +353,8 @@ class Editor(QtWidgets.QMainWindow):
         self.inputs.bind('<Alt-x>',
                          lambda e: self.visualize_play_select_text())
         self.protocol("WM_DELETE_WINDOW", self.close_window)
-        self.check_if_edited()
-        self.current_filename_path = None
+        '''
+        '''
         self.search_box_open = False
         self.config_box_open = False
         self.visualize_config_box_open = False
@@ -361,17 +391,17 @@ class Editor(QtWidgets.QMainWindow):
         current_label.setFont(self.current_font)
         current_label.adjustSize()
         return current_label
-
-    def check_if_edited(self):
-        current_text = self.inputs.get('1.0', 'end-1c')
-        if current_text != self.last_save:
-            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]} *')
-        else:
-            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')
-        self.after(100, self.check_if_edited)
+    
+    def get_action(self, text='', command=None, icon=None, shortcut=None):
+        current_action = QtWidgets.QAction(QtGui.QIcon() if icon is None else QtGui.QIcon(icon), text, self)
+        if command is not None:
+            current_action.triggered.connect(command)
+        if shortcut is not None:
+            current_action.setShortcut(shortcut)
+        return current_action
 
     def close_window(self):
-        current_text = self.inputs.get('1.0', 'end-1c')
+        current_text = self.inputs.toPlainText()
         if current_text != self.last_save:
             self.ask_save_window = Toplevel(
                 self,
@@ -481,22 +511,19 @@ class Editor(QtWidgets.QMainWindow):
             config_dict['background_mode'] = self.bg_mode
 
     def openfile(self):
-        filename = filedialog.askopenfilename(
-            title=current_language_dict['Choose Files'],
-            filetypes=((current_language_dict['All files'], "*"), ))
+        filename = Dialog(
+            caption=current_language_dict['Choose Files'],
+            directory='',
+            filter=f'{current_language_dict["All files"]} (*)').filename[0]        
         if filename:
             self.current_filename_path = filename
             try:
                 with open(filename, encoding='utf-8', errors='ignore') as f:
-                    self.inputs.delete('1.0', END)
-                    self.inputs.insert(END, f.read())
-                    self.inputs.see(INSERT)
-                    self.last_save = self.inputs.get('1.0', 'end-1c')
+                    self.inputs.clear()
+                    self.inputs.insertPlainText(f.read())
+                    self.last_save = self.inputs.toPlainText()
             except:
-                self.inputs.delete('1.0', END)
-                self.inputs.insert(
-                    END,
-                    current_language_dict['Not an available text file type'])
+                pass
 
     def file_top_make_menu(self):
         self.file_menu.tk_popup(x=self.winfo_pointerx(),
@@ -526,7 +553,7 @@ class Editor(QtWidgets.QMainWindow):
         self.config_change()
 
     def config_change(self):
-        current = self.config_contents.get('1.0', 'end-1c')
+        current = self.config_contents.toPlainText()
         current_config = self.config_window.choose_config_options.get(ANCHOR)
         self.get_config_dict[current_config] = current
 
@@ -827,8 +854,8 @@ class Editor(QtWidgets.QMainWindow):
         self.eachline_character = config_dict['eachline_character']
         self.pairing_symbols = config_dict['pairing_symbols']
         self.wraplines_number = config_dict['wraplines_number']
-        self.grammar_highlight = config_dict['grammar_highlight']
-        for each in self.grammar_highlight:
+        self.syntax_highlight = config_dict['syntax_highlight']
+        for each in self.syntax_highlight:
             self.inputs.tag_configure(each, foreground=each)
 
         try:
@@ -839,10 +866,10 @@ class Editor(QtWidgets.QMainWindow):
             pass
 
     def save_current_file(self):
-        current_text = self.inputs.get('1.0', 'end-1c')
+        current_text = self.inputs.toPlainText()
         if current_text != self.last_save:
             if self.current_filename_path:
-                self.last_save = self.inputs.get('1.0', 'end-1c')
+                self.last_save = self.inputs.toPlainText()
                 with open(self.current_filename_path, 'w',
                           encoding='utf-8') as f:
                     f.write(self.last_save)
@@ -851,267 +878,25 @@ class Editor(QtWidgets.QMainWindow):
             self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')
 
     def save(self):
-        filename = filedialog.asksaveasfilename(
-            title=current_language_dict["Save Input Text"],
-            filetypes=((current_language_dict['All files'], "*"), ),
-            defaultextension=".txt",
-            initialfile='Untitled.txt')
+        filename = Dialog(caption=current_language_dict["Save Input Text"],
+                          directory='',
+                          filter=f'{current_language_dict["All files"]} (*)',
+                          mode=2).filename[0]        
         if filename:
+            current_filename, file_extension = os.path.splitext(filename)
+            if not file_extension:
+                filename = f'{current_filename}.txt'
             self.current_filename_path = filename
-            current_text = self.inputs.get('1.0', 'end-1c')
+            current_text = self.inputs.toPlainText()
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write(current_text)
             self.last_save = current_text
 
-    def get_current_select(self):
-        if self.show_select:
-            text = self.auto_complete_menu.get(self.select_ind)
-            self.auto_complete_menu.destroy()
-            self.show_select = False
-            self.inputs.delete('1.0', END)
-            self.pre_input = self.pre_input[:self.
-                                            start] + text + self.pre_input[
-                                                self.start2:]
-            self.inputs.insert(END, self.pre_input)
-            self.inputs.mark_set(INSERT,
-                                 '1.0' + f' + {self.start + len(text)} chars')
-            self.inputs.see(INSERT)
-            if self.is_realtime:
-                self.changed = True
-                self.realtime_run()
-
-    def close_select(self):
-        if self.show_select:
-            self.auto_complete_menu.destroy()
-            self.show_select = False
-
-    def change_select(self, value):
-        if self.show_select:
-            sizes = self.auto_complete_menu.size()
-            if 0 <= self.select_ind + value < sizes:
-                self.auto_complete_menu.selection_set(self.select_ind + value)
-                self.auto_complete_menu.selection_clear(self.select_ind)
-                self.select_ind += value
-                self.auto_complete_menu.see(self.select_ind)
-            else:
-                if self.select_ind + value >= sizes:
-                    self.auto_complete_menu.selection_clear(self.select_ind)
-                    self.select_ind = 0
-                    self.auto_complete_menu.selection_set(self.select_ind)
-                    self.auto_complete_menu.see(self.select_ind)
-                else:
-                    self.auto_complete_menu.selection_clear(self.select_ind)
-                    self.select_ind = sizes - 1
-                    self.auto_complete_menu.selection_set(self.select_ind)
-                    self.auto_complete_menu.see(self.select_ind)
-
-    def enter_choose(self):
-        text = self.auto_complete_menu.get(ANCHOR)
-        if text:
-            self.auto_complete_menu.destroy()
-            self.show_select = False
-            self.inputs.delete('1.0', END)
-            self.pre_input = self.pre_input[:self.
-                                            start] + text + self.pre_input[
-                                                self.start2:]
-            self.inputs.insert(END, self.pre_input)
-            self.inputs.mark_set(INSERT,
-                                 '1.0' + f' + {self.start + len(text)} chars')
-            self.inputs.see(INSERT)
-            if self.is_realtime:
-                self.changed = True
-                self.realtime_run()
-
-    def auto_complete_run(self):
-        if not self.is_auto:
-            return
-        current_text = self.inputs.get('1.0', 'end-1c')
-        if current_text != self.pre_input:
-            self.changed = True
-            is_deleted = len(current_text) < len(self.pre_input)
-            self.pre_input = current_text
-            self.auto_complete_menu.destroy()
-            self.show_select = False
-            current_text2 = self.inputs.get('1.0', INSERT)
-            if current_text2 and current_text2[-1] not in [' ', '\n']:
-                for each in self.pairing_symbols:
-                    if current_text2[-1] == each[0] and not is_deleted:
-                        self.inputs.insert(INSERT, each[1])
-                        self.pre_input = self.inputs.get('1.0', 'end-1c')
-                        x, y = self.inputs.index(INSERT).split('.')
-                        self.inputs.mark_set(INSERT, f'{x}.{int(y)-1}')
-                        break
-                else:
-                    newline_ind, dot_ind = current_text2.rfind(
-                        '\n') + 1, current_text2.rfind('.') + 1
-                    start = max(newline_ind, dot_ind)
-                    start_min = min(newline_ind, dot_ind)
-                    if dot_ind > newline_ind:
-                        dot_word_ind = newline_ind
-                        if current_text2[dot_word_ind] in ['/', '?']:
-                            dot_word_ind += 1
-
-                        current_word = current_text2[start_min:]
-                        original_current_word = current_word
-                        self.start = start_min
-                        inner_comma = False
-                        if '=' in current_word:
-                            new_current_word = current_word.split('=')[-1]
-                            if ',' in new_current_word:
-                                new_current_word = new_current_word.split(
-                                    ',')[-1].split(' ')[-1]
-                                if '.' not in new_current_word:
-                                    self.start = start_min + current_word.rindex(
-                                        new_current_word)
-                                    current_word = new_current_word
-                                else:
-                                    current_word = current_word.split('=')[-1]
-                                    inner_comma = True
-                            else:
-                                new_current_word = new_current_word.split(
-                                    ' ')[-1]
-                                self.start = start_min + current_word.rindex(
-                                    new_current_word)
-                                current_word = new_current_word
-                        elif ',' in current_word:
-                            new_current_word = current_word.split(
-                                ',')[-1].split(' ')[-1]
-                            if '.' not in new_current_word:
-                                self.start = start_min + current_word.rindex(
-                                    new_current_word)
-                                current_word = new_current_word
-                            else:
-                                inner_comma = True
-                        else:
-                            new_current_word = current_word.split(' ')[-1]
-                            if '.' not in new_current_word:
-                                self.start = start_min + current_word.rindex(
-                                    new_current_word)
-                            current_word = new_current_word
-
-                        if current_word:
-                            if '.' in current_word:
-                                new_dot_ind = current_word.rindex('.')
-                                new_current_word = current_word[:new_dot_ind]
-                                dot_content = current_word[new_dot_ind +
-                                                           1:].lower()
-                                current_word = new_current_word
-                                try:
-                                    current_content = eval(current_word)
-                                    if inner_comma and type(
-                                            current_content) == tuple:
-                                        current_content = current_content[-1]
-                                    current_func = dir(current_content)
-                                    find_similar = [
-                                        x for x in current_func
-                                        if x.lower().startswith(dot_content)
-                                    ]
-                                    find_similar.sort()
-                                    find_similar2 = [
-                                        x for x in current_func
-                                        if dot_content in x.lower() and
-                                        not x.lower().startswith(dot_content)
-                                    ]
-                                    find_similar2.sort()
-                                    find_similar += find_similar2
-                                    if find_similar:
-                                        self.start = start
-                                        self.start2 = start + len(dot_content)
-                                        self.auto_complete(find_similar)
-                                except:
-                                    pass
-                            else:
-                                current_word = current_word.lower()
-                                find_similar = [
-                                    x for x in function_names
-                                    if x.lower().startswith(current_word)
-                                ]
-                                find_similar.sort()
-                                find_similar2 = [
-                                    x for x in function_names
-                                    if current_word in x.lower()
-                                    and not x.lower().startswith(current_word)
-                                ]
-                                find_similar2.sort()
-                                find_similar += find_similar2
-                                if find_similar:
-                                    self.start2 = start_min + len(
-                                        original_current_word)
-                                    self.auto_complete(find_similar)
-
-                    else:
-                        if current_text2[start] in ['/', '?']:
-                            start += 1
-                        current_word = current_text2[start:].lower()
-                        original_current_word = current_word
-                        if '=' in current_word:
-                            new_current_word = current_word.split('=')[-1]
-                            if ',' in new_current_word:
-                                new_current_word = new_current_word.split(
-                                    ',')[-1].split(' ')[-1]
-                            else:
-                                new_current_word = new_current_word.split(
-                                    ' ')[-1]
-                            self.start = start + current_word.rindex(
-                                new_current_word)
-                            current_word = new_current_word
-                        elif ',' in current_word:
-                            new_current_word = current_word.split(
-                                ',')[-1].split(' ')[-1]
-                            self.start = start + current_word.rindex(
-                                new_current_word)
-                            current_word = new_current_word
-                        else:
-                            new_current_word = current_word.split(' ')[-1]
-                            self.start = start + current_word.rindex(
-                                new_current_word)
-                            current_word = new_current_word
-                        if current_word:
-                            find_similar = [
-                                x for x in function_names
-                                if x.lower().startswith(current_word)
-                            ]
-                            find_similar.sort()
-                            find_similar2 = [
-                                x for x in function_names
-                                if current_word in x.lower()
-                                and not x.lower().startswith(current_word)
-                            ]
-                            find_similar2.sort()
-                            find_similar += find_similar2
-                            if find_similar:
-                                self.start2 = start + len(
-                                    original_current_word)
-                                self.auto_complete(find_similar)
+    def runs(self, mode=0):
+        if not self.is_realtime:
+            text = self.inputs.toPlainText()
         else:
-            if not self.is_realtime:
-                self.changed = False
-        self.after(10, self.auto_complete_run)
-
-    def get_input_place(self):
-        character = self.inputs.get(INSERT)
-        x, y, width, height = self.inputs.bbox(INSERT)
-        screen_x = x + (0 if character == '\n' else width)
-        screen_y = y + height + 15
-        return screen_x, screen_y
-
-    def auto_complete(self, find_similar):
-        self.auto_complete_menu = Listbox(self)
-        self.auto_complete_menu.bind("<<ListboxSelect>>",
-                                     lambda e: self.enter_choose())
-        places = self.get_input_place()
-        for each in find_similar:
-            self.auto_complete_menu.insert(END, each)
-        self.auto_complete_menu.move(x=places[0], y=places[1])
-        self.show_select = True
-        self.select_ind = 0
-        self.auto_complete_menu.selection_set(0)
-
-    def runs(self):
-        if self.is_grammar and self.inputs.edit_modified():
-            self.after(100, self.grammar_highlight_func)
-        self.outputs.delete('1.0', END)
-        text = self.inputs.get('1.0', 'end-1c')
+            text = self.pre_input
         lines = text.split('\n')
         for i in range(len(lines)):
             each = lines[i]
@@ -1122,48 +907,27 @@ class Editor(QtWidgets.QMainWindow):
                     lines[i] = f'alg.detect({each[1:]})'
         text = '\n'.join(lines)
         try:
+            current_outputs = self.outputs.toPlainText()
+            self.outputs.clear()
             exec(text, globals())
-            if self.is_print:
-                for each in lines:
-                    try:
-                        if 'play(' not in each:
-                            print(eval(each))
-                    except:
-                        pass
         except:
-            self.outputs.insert(
-                END, current_language_dict['The codes are invalid\n'])
-            self.outputs.insert(END, traceback.format_exc())
+            self.outputs.insertPlainText(current_outputs)
+            if mode == 1:
+                self.outputs.clear()
+                self.outputs.insertPlainText(traceback.format_exc())
+            return
+        if self.is_print:
+            for each in lines:
+                try:
+                    if 'play(' not in each:
+                        print(eval(each))
+                except:
+                    pass
 
-    def runs_2(self):
-        self.inputs.edit_modified(False)
-        self.outputs.delete('1.0', END)
-        text = self.pre_input
-        lines = text.split('\n')
-        for i in range(len(lines)):
-            each = lines[i]
-            if each:
-                if each[0] == '/':
-                    lines[i] = f'play({each[1:]})'
-                elif each[0] == '?':
-                    lines[i] = f'alg.detect({each[1:]})'
-        text = '\n'.join(lines)
-        try:
-            exec(text, globals())
-            if self.is_print:
-                for each in lines:
-                    try:
-                        if 'play(' not in each:
-                            print(eval(each))
-                    except:
-                        pass
-        except:
-            pass
-
-    def grammar_highlight_func(self):
+    def syntax_highlight_func(self):
         end_index = self.inputs.index(END)
         start_x = self.inputs.index(INSERT).split('.')[0]
-        for color, texts in self.grammar_highlight.items():
+        for color, texts in self.syntax_highlight.items():
             self.inputs.tag_remove(color, f'{start_x}.0', END)
             for i in texts:
                 start_index = '1.0'
@@ -1192,48 +956,37 @@ class Editor(QtWidgets.QMainWindow):
                         y = int(y) + 1
                         start_index = f'{x}.{y}'
 
-    def realtime_run(self):
-        global function_names
-        function_names = list(
-            set(musicpy_vars + list(locals().keys()) + list(globals().keys())))
+    def input_changed(self):
+        current_text = self.inputs.toPlainText()
+        if current_text != self.last_save:
+            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]} *')
+        else:
+            self.setWindowTitle(f'Musicpy {current_language_dict["Editor"]}')        
         if self.quit or (not self.is_realtime):
             self.quit = False
             return
-        if self.is_grammar and self.inputs.edit_modified():
-            self.grammar_highlight_func()
-        if self.is_auto:
-            if self.changed:
-                self.changed = False
-                self.runs_2()
-        else:
-            if self.inputs.edit_modified():
-                self.pre_input = self.inputs.get('1.0', 'end-1c')
-                self.runs_2()
-        self.after(100, self.realtime_run)
+        global function_names
+        function_names = list(set(musicpy_vars + list(locals().keys())))
+        if self.is_syntax:
+            #self.syntax_highlight_func()
+            pass
+        self.pre_input = self.inputs.toPlainText()
+        self.runs()
 
     def check_realtime(self):
+        print2(111, flush=True)
         value = self.realtime_box.isChecked()
         if value:
-            if not self.is_realtime:
-                self.is_realtime = 1
-                self.realtime_run()
+            self.is_realtime = 1
         else:
-            if self.is_realtime:
-                self.is_realtime = 0
-                self.quit = True
+            self.is_realtime = 0
+            self.quit = True
 
     def check_print(self):
-        self.is_print = self.no_print.get()
+        self.is_print = self.print_box.isChecked()
 
-    def check_auto(self):
-        self.is_auto = self.auto.get()
-        if self.is_auto:
-            self.auto_complete_run()
-        else:
-            self.close_select()
-
-    def check_grammar(self):
-        self.is_grammar = self.grammar.get()
+    def check_syntax(self):
+        self.is_syntax = self.syntax_box.isChecked()
 
     def cut(self):
         self.inputs.event_generate("<<Cut>>")
@@ -1284,12 +1037,12 @@ class Editor(QtWidgets.QMainWindow):
         visualize.start()
 
     def read_midi_file(self):
-        filename = filedialog.askopenfilename(
-            title=current_language_dict["Choose MIDI File"],
-            filetypes=((current_language_dict["MIDI File"], ".mid"),
-                       (current_language_dict['All files'], "*")))
+        filename = Dialog(
+            caption=current_language_dict["Choose MIDI File"],
+            directory='',
+            filter=f'{current_language_dict["MIDI File"]} (*.mid);{current_language_dict["All files"]} (*)').filename[0]        
         if filename:
-            self.inputs.insert(END, f"new_midi_file = read(\"{filename}\")\n")
+            self.inputs.insertPlainText(f"new_midi_file = read(\"{filename}\")\n")
 
     def stop_play_midi(self):
         pygame.mixer.music.stop()
@@ -1366,7 +1119,7 @@ class Editor(QtWidgets.QMainWindow):
             self.inputs.see(current_inds[1])
 
     def search(self, *args):
-        all_text = self.inputs.get('1.0', 'end-1c')
+        all_text = self.inputs.toPlainText()
 
         for each in self.search_inds_list:
             ind1, ind2 = each
@@ -1392,9 +1145,6 @@ class Editor(QtWidgets.QMainWindow):
             for each in self.search_inds_list:
                 ind1, ind2 = each
                 self.inputs.tag_add('highlight', ind1, ind2)
-
-    def rightKey(self, event):
-        self.menubar.tk_popup(event.x_root, event.y_root)
 
 
 def get_stylesheet():
@@ -1426,9 +1176,9 @@ def get_stylesheet():
 '''
     return result
 
+
 if __name__ == '__main__':
-    function_names = list(
-        set(musicpy_vars + list(locals().keys()) + list(globals().keys())))
+    function_names = list(set(musicpy_vars))
     app = QtWidgets.QApplication(sys.argv)
     current_stylesheet = get_stylesheet()
     app.setStyleSheet(current_stylesheet)
