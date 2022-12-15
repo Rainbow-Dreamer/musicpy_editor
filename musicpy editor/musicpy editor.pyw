@@ -22,7 +22,7 @@ except ImportError:
     current_messagebox = QtWidgets.QMessageBox()
     current_messagebox.setIcon(QtWidgets.QMessageBox.Warning)
     current_messagebox.setText(
-        'Not all required python packages are installed.\nPlease run\npip install musicpy pillow pyglet==1.5.11 yapf pyqt5\nin the terminal to install the required packages for this editor.'
+        'Not all required python packages are installed.\nPlease run\npip install musicpy pyglet==1.5.11 yapf pyqt5\nin the terminal to install the required packages for this editor.'
     )
     current_messagebox.setWindowTitle('Warning')
     current_messagebox.exec_()
