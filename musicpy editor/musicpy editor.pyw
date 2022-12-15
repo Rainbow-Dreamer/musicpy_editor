@@ -25,8 +25,10 @@ except ImportError:
         'Not all required python packages are installed.\nPlease run\npip install musicpy pyglet==1.5.11 yapf pyqt5\nin the terminal to install the required packages for this editor.'
     )
     current_messagebox.setWindowTitle('Warning')
-    current_messagebox.exec_()
-    sys.exit(app.exec_())
+    current_messagebox.show()
+    app.exec()
+    del current_messagebox
+    del app
     sys.exit(0)
 
 musicpy_vars = dir(musicpy)
@@ -39,9 +41,18 @@ with open(config_path, encoding='utf-8') as f:
 current_language = config_dict['language']
 current_language_file = f'languages/{current_language}.json'
 if not os.path.exists(current_language_file):
-    Tk().withdraw()
-    messagebox.showerror(
-        message=f'Cannot find language file for {current_language}')
+    app = QtWidgets.QApplication(sys.argv)
+    current_messagebox = QtWidgets.QMessageBox()
+    current_messagebox.setIcon(QtWidgets.QMessageBox.Warning)
+    current_messagebox.setText(
+        f'Cannot find language file for {current_language}')
+    current_messagebox.setWindowTitle('Warning')
+    current_messagebox.show()
+    app.exec()
+    del current_messagebox
+    del app
+    current_language = 'English'
+    current_language_file = f'languages/{current_language}.json'
 with open(current_language_file, encoding='utf-8') as f:
     current_language_dict = json.load(f)
 
