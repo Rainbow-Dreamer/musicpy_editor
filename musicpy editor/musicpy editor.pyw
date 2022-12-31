@@ -9,7 +9,6 @@ abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)
 try:
     from PyQt5 import QtGui, QtWidgets, QtCore
-    import PIL.Image, PIL.ImageTk
     from yapf.yapflib.yapf_api import FormatCode
     import musicpy
     from visualization.packages.change_settings import config_window
