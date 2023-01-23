@@ -1117,7 +1117,10 @@ class piano_engine:
             same_note_special=piano_config.same_note_special,
             whole_detect=piano_config.whole_detect,
             poly_chord_first=piano_config.poly_chord_first,
+            root_preference=piano_config.root_preference,
             show_degree=piano_config.show_degree,
+            original_first_ratio=piano_config.original_first_ratio,
+            similarity_ratio=piano_config.similarity_ratio,
             custom_mapping=current_custom_mapping)
         if current_chord_info is None:
             return
@@ -1367,6 +1370,9 @@ class piano_engine:
             try:
                 self._init_send_midi(current_start_time)
             except Exception as e:
+                print(222)
+                import traceback
+                print(traceback.format_exc())
                 current_piano_window.label.text = str(e)
                 current_piano_window.label.draw()
                 current_piano_window.flip()
@@ -1380,8 +1386,8 @@ class piano_engine:
         self.midi_file_play()
 
     def _init_send_midi(self, current_start_time):
-        if piano_config.play_midi_port is not None:
-            self.current_output_port_num = piano_config.play_midi_port
+        if piano_config.midi_output_port is not None:
+            self.current_output_port_num = piano_config.midi_output_port
         else:
             pygame.midi.quit()
             pygame.midi.init()
@@ -1417,6 +1423,7 @@ class piano_engine:
         try:
             self._init_send_midi(current_start_time)
         except Exception as e:
+            print(111)
             current_piano_window.label.text = str(e)
             current_piano_window.label.draw()
             current_piano_window.flip()
