@@ -1,9 +1,9 @@
 import traceback
 import sys
 import os
-import re
 from io import BytesIO
 import json
+from multiprocessing import Process
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)
@@ -81,7 +81,7 @@ def direct_play(filename):
 
 def set_font(font, dpi):
     if dpi != 96.0:
-        font.setPointSize(font.pointSize() * (96.0 / dpi))
+        font.setPointSize(int(font.pointSize() * (96.0 / dpi)))
     return font
 
 
@@ -102,7 +102,13 @@ class Dialog(QtWidgets.QMainWindow):
 
 class CustomTextEdit(QtWidgets.QPlainTextEdit):
 
-    def __init__(self, parent=None, pairing_symbols=[], custom_actions=[]):
+    def __init__(self,
+                 parent=None,
+                 pairing_symbols=[],
+                 custom_actions=[],
+                 size=None,
+                 font=None,
+                 place=None):
         super().__init__(parent)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.__contextMenu)
@@ -117,6 +123,14 @@ class CustomTextEdit(QtWidgets.QPlainTextEdit):
         self.special_words = "~!@#$%^&*()+{}|:\"<>?,./;'[]\\-="
         self.current_completion_words = function_names
         self.custom_actions = custom_actions
+        if size is not None:
+            self.setFixedSize(*size)
+        if font is not None:
+            self.setFont(font)
+        if place is not None:
+            self.move(*place)
+        self.input_completer = QtWidgets.QCompleter(function_names)
+        self.setCompleter(self.input_completer)
 
     def __contextMenu(self):
         self._normalMenu = self.createStandardContextMenu()
@@ -210,6 +224,10 @@ class CustomTextEdit(QtWidgets.QPlainTextEdit):
                                or len(completionPrefix) < 1
                                or current_text[-1] in self.special_words):
             self._completer.popup().hide()
+            if self.current_completion_words != function_names:
+                self._completer.setModel(
+                    QtCore.QStringListModel(function_names, self._completer))
+                self.current_completion_words = function_names
             return
 
         if completionPrefix != self._completer.completionPrefix():
@@ -381,6 +399,7 @@ class ask_save_window(QtWidgets.QMainWindow):
 
     def __init__(self, dpi=None):
         super().__init__()
+        self.setStyleSheet(current_editor.get_stylesheet())
         self.setWindowTitle('Save File')
         self.setMinimumSize(600, 200)
         self.dpi = dpi
@@ -439,14 +458,15 @@ class Editor(QtWidgets.QMainWindow):
             QtGui.QFont(self.font_type, self.font_size), self.dpi)
         self.inputs_text = self.get_label(
             text=current_language_dict['Input musicpy codes here'])
+        self.inputs_text.move(0, 80)
         self.custom_actions = [
             self.get_action(text=current_language_dict['Play Selected Code'],
                             command=self.play_select_text,
-                            shortcut='Alt+Z'),
+                            shortcut='Ctrl+B'),
             self.get_action(
                 text=current_language_dict['Play Selected Code Visually'],
                 command=self.visualize_play_select_text,
-                shortcut='Alt+X'),
+                shortcut='Ctrl+G'),
             self.get_action(text=current_language_dict['Import MIDI File'],
                             command=self.read_midi_file,
                             shortcut='Ctrl+D'),
@@ -460,12 +480,11 @@ class Editor(QtWidgets.QMainWindow):
         self.inputs = CustomTextEdit(
             self,
             pairing_symbols=config_dict['pairing_symbols'],
-            custom_actions=self.custom_actions)
+            custom_actions=self.custom_actions,
+            size=(700, 200),
+            font=self.current_font,
+            place=(0, 110))
         self.inputs.addActions(self.custom_actions)
-        self.inputs.setFixedSize(700, 200)
-        self.inputs.setFont(self.current_font)
-        self.inputs_text.move(0, 80)
-        self.inputs.move(0, 110)
         self.outputs_text = self.get_label(
             text=current_language_dict['Output'])
         self.outputs = QtWidgets.QPlainTextEdit(self)
@@ -482,8 +501,6 @@ class Editor(QtWidgets.QMainWindow):
         self.is_print = True
         self.pre_input = ''
         self.changed = False
-        self.input_completer = QtWidgets.QCompleter(function_names)
-        self.inputs.setCompleter(self.input_completer)
         self.menu_bar = self.menuBar()
         self.file_menu = self.menu_bar.addMenu(current_language_dict['File'])
         self.file_menu.addAction(
@@ -534,8 +551,6 @@ class Editor(QtWidgets.QMainWindow):
         self.last_save = self.inputs.toPlainText()
         self.current_filename_path = None
         self.inputs.textChanged.connect(self.input_changed)
-        QtWidgets.QShortcut('Ctrl+E',
-                            self).activated.connect(self.stop_play_midi)
         self.bg_mode = config_dict['background_mode']
         self.change_background_color_mode(turn=False)
         self.background_action = self.get_action(
@@ -558,7 +573,56 @@ class Editor(QtWidgets.QMainWindow):
         self.current_config_window = None
         self.current_visual_config_window = None
         self.ask_save_window = None
+        self.visualize_process = None
+
+        self.setStyleSheet(self.get_stylesheet())
+
         self.show()
+
+    def get_stylesheet(self):
+        font_size = self.current_font.pointSize()
+        font_type = self.font_type
+        if config_dict['background_image']:
+            bg_path = config_dict['background_image']
+            bg_places = config_dict['background_places']
+            current_background_stylesheet = f'background-image: url("{bg_path}"); background-repeat: no-repeat; background-position: right; padding: {bg_places[0]}px {bg_places[1]}px {bg_places[2]}px {bg_places[3]}px; background-origin: content;'
+        else:
+            current_background_stylesheet = ''
+        result = f'''
+        QMainWindow {{
+        background-color: {config_dict["background_color"]}; {current_background_stylesheet}
+        }}
+        QPushButton {{
+        background-color: transparent;
+        color: {config_dict["foreground_color"]};
+        font-size: {font_size}pt;
+        font-family: {font_type};
+        }}
+        QPushButton:hover {{
+        background-color: {config_dict["active_background_color"]};
+        color: {config_dict["active_foreground_color"]};
+        }}
+        QCheckBox {{
+        background-color: transparent;
+        color: {config_dict["foreground_color"]};
+        }}
+        QLabel {{
+        background-color: transparent;
+        font-size: {font_size}pt;
+        font-family: {font_type};
+        }}
+        QMenu {{
+        background-color: {config_dict["background_color"]};
+        color: {config_dict["foreground_color"]};
+        font-size: {font_size}pt;
+        font-family: {font_type};
+        }}
+        QMenu::item:selected {{
+        background-color: {config_dict["active_background_color"]};
+        color: {config_dict["active_foreground_color"]};
+        }}
+    '''
+        return result
 
     def closeEvent(self, event):
         current_text = self.inputs.toPlainText()
@@ -623,28 +687,35 @@ class Editor(QtWidgets.QMainWindow):
             self.last_save = self.inputs.toPlainText()
             self.ask_save_window.close()
             self.close()
+            os._exit(0)
 
     def destroy_and_quit(self):
         self.last_save = self.inputs.toPlainText()
         self.ask_save_window.close()
         self.close()
+        os._exit(0)
 
     def editor_config(self):
         if self.current_config_window is not None and self.current_config_window.isVisible(
         ):
+            self.current_config_window.activateWindow()
             return
-        self.current_config_window = config_window(dpi=self.dpi,
-                                                   config_path=config_path,
-                                                   parent=self)
-        self.current_config_window.show()
+        else:
+            self.current_config_window = config_window(dpi=self.dpi,
+                                                       config_path=config_path,
+                                                       parent=self)
+            self.current_config_window.setStyleSheet(self.get_stylesheet())
 
     def visualize_config(self):
         if self.current_visual_config_window is not None and self.current_visual_config_window.isVisible(
         ):
+            self.current_visual_config_window.activateWindow()
             return
-        self.current_visual_config_window = config_window(
-            dpi=self.dpi, config_path=piano_config_path)
-        self.current_visual_config_window.show()
+        else:
+            self.current_visual_config_window = config_window(
+                dpi=self.dpi, config_path=piano_config_path)
+            self.current_visual_config_window.setStyleSheet(
+                self.get_stylesheet())
 
     def get_current_line_column(self):
         self.current_line_number = self.inputs.textCursor().blockNumber() + 1
@@ -688,7 +759,7 @@ class Editor(QtWidgets.QMainWindow):
         global config_dict
         with open(config_path, encoding='utf-8') as f:
             config_dict = json.load(f)
-        current_stylesheet = get_stylesheet()
+        current_stylesheet = self.get_stylesheet()
         app.setStyleSheet(current_stylesheet)
         self.pairing_symbols = config_dict['pairing_symbols']
         if self.is_syntax:
@@ -807,14 +878,19 @@ class Editor(QtWidgets.QMainWindow):
             self.outputs.insertPlainText(
                 current_language_dict['The codes selected cannot be played'])
             return
-        visualize.start()
+        if self.visualize_process is not None and self.visualize_process.is_alive(
+        ):
+            self.visualize_process.terminate()
+        self.visualize_process = Process(target=visualize.start)
+        self.visualize_process.daemon = True
+        self.visualize_process.start()
 
     def read_midi_file(self):
         filename = Dialog(
             caption=current_language_dict["Choose MIDI File"],
             directory='',
             filter=
-            f'{current_language_dict["MIDI File"]} (*.mid);{current_language_dict["All files"]} (*)'
+            f'{current_language_dict["MIDI File"]} (*.mid);;{current_language_dict["All files"]} (*)'
         ).filename[0]
         if filename:
             self.inputs.insertPlainText(
@@ -836,42 +912,10 @@ class Editor(QtWidgets.QMainWindow):
         pass
 
 
-def get_stylesheet():
-    if config_dict['background_image']:
-        bg_path = config_dict['background_image']
-        bg_places = config_dict['background_places']
-        current_background_stylesheet = f'background-image: url("{bg_path}"); background-repeat: no-repeat; background-position: right; padding: {bg_places[0]}px {bg_places[1]}px {bg_places[2]}px {bg_places[3]}px; background-origin: content;'
-    else:
-        current_background_stylesheet = ''
-    result = f'''
-    QMainWindow {{
-    background-color: {config_dict["background_color"]}; {current_background_stylesheet}
-    }}
-    QPushButton {{
-    background-color: transparent;
-    color: {config_dict["foreground_color"]};
-    }}
-    QPushButton:hover {{
-    background-color: {config_dict["active_background_color"]};
-    color: {config_dict["active_foreground_color"]};
-    }}
-    QCheckBox {{
-    background-color: transparent;
-    color: {config_dict["foreground_color"]};
-    }}
-    QLabel {{
-    background-color: transparent;
-    }}
-'''
-    return result
-
-
 if __name__ == '__main__':
     function_names = list(set(musicpy_vars))
     function_names.sort()
     app = QtWidgets.QApplication(sys.argv)
-    current_stylesheet = get_stylesheet()
-    app.setStyleSheet(current_stylesheet)
     dpi = (app.screens()[0]).logicalDotsPerInch()
     current_editor = Editor(dpi=dpi)
     app.exec()

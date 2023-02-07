@@ -738,8 +738,7 @@ class piano_window(pyglet.window.Window):
         pyglet.clock.unschedule(current_piano_engine._midi_show_finished)
         if not piano_config.use_soundfont:
             try:
-                current_piano_engine.current_send_midi_event_process.terminate(
-                )
+                current_piano_engine.current_send_midi_queue.put('stop')
             except:
                 pass
         else:
@@ -1081,19 +1080,33 @@ class piano_engine:
             self.current_ticks_per_beat = mp.get_ticks_per_beat(
                 current_piano_window.current_sf2_player.current_midi_file)
             current_use_soundfont_delay_time = piano_config.use_soundfont_delay_time if piano_config.note_mode == 'bars drop' else 0
+            if not piano_config.midi_playing_multiprocess:
+                current_use_soundfont_delay_time = 0
             pyglet.clock.schedule_once(
                 self.start_play_sf2, current_piano_window.bars_drop_interval +
                 current_use_soundfont_delay_time)
         else:
-            self.current_send_midi_queue = multiprocessing.Queue()
-            self.current_send_midi_event_process = multiprocessing.Process(
-                target=start_send_midi_event,
-                args=(self.event_list, 0, self.current_output_port_num,
-                      self.midi_event_length, self.current_send_midi_queue))
-            self.current_send_midi_event_process.daemon = True
-            current_send_midi_event_thread = Thread(
-                target=self.current_send_midi_event_process.start, daemon=True)
-            current_send_midi_event_thread.start()
+            if piano_config.load_sound:
+                self.current_send_midi_queue = multiprocessing.Queue()
+                if piano_config.midi_playing_multiprocess:
+                    self.current_send_midi_event_process = multiprocessing.Process(
+                        target=start_send_midi_event,
+                        args=(self.event_list, 0, self.current_output_port_num,
+                              self.midi_event_length,
+                              self.current_send_midi_queue))
+                    self.current_send_midi_event_process.daemon = True
+                    current_send_midi_event_thread = Thread(
+                        target=self.current_send_midi_event_process.start,
+                        daemon=True)
+                    current_send_midi_event_thread.start()
+                else:
+                    current_send_midi_event_single_process_thread = Thread(
+                        target=start_send_midi_event,
+                        args=(self.event_list, 0, self.current_output_port_num,
+                              self.midi_event_length,
+                              self.current_send_midi_queue),
+                        daemon=True)
+                    current_send_midi_event_single_process_thread.start()
 
     def start_play_sf2(self, dt):
         current_piano_window.current_sf2_player.play_midi_file(
@@ -1365,15 +1378,13 @@ class piano_engine:
                         self._load_file('temp.mid')
         current_start_time = current_piano_window.bars_drop_interval
         if not piano_config.use_soundfont:
-            current_start_time -= piano_config.play_midi_start_process_time
+            current_play_midi_start_process_time = piano_config.play_midi_start_process_time if piano_config.midi_playing_multiprocess else 0
+            current_start_time -= current_play_midi_start_process_time
             if current_start_time < 0:
                 current_start_time = 0
             try:
                 self._init_send_midi(current_start_time)
             except Exception as e:
-                print(222)
-                import traceback
-                print(traceback.format_exc())
                 current_piano_window.label.text = str(e)
                 current_piano_window.label.draw()
                 current_piano_window.flip()
@@ -1418,13 +1429,13 @@ class piano_engine:
     def _load_file(self, path):
         self.current_piece = mp.read(path)
         current_start_time = current_piano_window.bars_drop_interval
-        current_start_time -= piano_config.play_midi_start_process_time
+        current_play_midi_start_process_time = piano_config.play_midi_start_process_time if piano_config.midi_playing_multiprocess else 0
+        current_start_time -= current_play_midi_start_process_time
         if current_start_time < 0:
             current_start_time = 0
         try:
             self._init_send_midi(current_start_time)
         except Exception as e:
-            print(111)
             current_piano_window.label.text = str(e)
             current_piano_window.label.draw()
             current_piano_window.flip()
@@ -1454,8 +1465,9 @@ class piano_engine:
                         currentnote, 0
                     ]
                 else:
+                    current_bars_mode_delay_time = piano_config.bars_mode_delay_time if piano_config.midi_playing_multiprocess else 0
                     current_drop_time = [
-                        currentstart + piano_config.bars_mode_delay_time,
+                        currentstart + current_bars_mode_delay_time,
                         currentnote, 0
                     ]
                 self.bars_drop_time.append(current_drop_time)
@@ -1482,9 +1494,10 @@ class piano_engine:
     def _midi_show_playing(self):
         self.current_past_time = time.time(
         ) - self.startplay + self.current_position
+        current_move_progress_adjust_time = piano_config.move_progress_adjust_time if piano_config.midi_playing_multiprocess else 0
         self.current_progress_percentage = (
             self.current_past_time -
-            piano_config.move_progress_adjust_time) / self.stop_time
+            current_move_progress_adjust_time) / self.stop_time
         current_progress_bar_length = current_piano_window.progress_bar_length * self.current_progress_percentage
         current_piano_window.current_progress_bar.width = current_progress_bar_length + 2
         if piano_config.note_mode == 'bars drop':
@@ -1497,6 +1510,10 @@ class piano_engine:
             self._midi_show_draw_notes_bars_mode(mode=1)
             self._midi_show_draw_notes_hit_key_bars_mode()
         if self.current_past_time >= self.stop_time:
+            try:
+                self.current_send_midi_queue.put('stop')
+            except:
+                pass
             self.finished = True
 
     def _midi_show_draw_notes_bars_drop_mode(self):
@@ -1642,7 +1659,10 @@ class piano_engine:
             if not current_piano_window.current_sf2_player.playing:
                 return
             current_use_soundfont_delay_time = piano_config.use_soundfont_delay_time if piano_config.note_mode == 'bars drop' else 0
-            current_sf2_time = position - piano_config.bars_drop_interval + piano_config.move_progress_adjust_time - current_use_soundfont_delay_time
+            if not piano_config.midi_playing_multiprocess:
+                current_use_soundfont_delay_time = 0
+            current_move_progress_adjust_time = piano_config.move_progress_adjust_time if piano_config.midi_playing_multiprocess else 0
+            current_sf2_time = position - piano_config.bars_drop_interval + current_move_progress_adjust_time - current_use_soundfont_delay_time
             if current_sf2_time < 0:
                 position += abs(current_sf2_time)
                 current_sf2_time = 0
@@ -1651,7 +1671,8 @@ class piano_engine:
             self.current_position = 0
         if self.current_position >= self.stop_time:
             self.current_position = self.stop_time
-        self.startplay = time.time() - piano_config.move_progress_adjust_time
+        current_move_progress_adjust_time = piano_config.move_progress_adjust_time if piano_config.midi_playing_multiprocess else 0
+        self.startplay = time.time() - current_move_progress_adjust_time
         if piano_config.note_mode in note_display_mode:
             current_past_time = time.time(
             ) - self.startplay + self.current_position
@@ -1662,8 +1683,9 @@ class piano_engine:
                     each[2] = 1
 
         if not piano_config.use_soundfont:
-            self.current_send_midi_queue.put(
-                ['set_position', self.current_position])
+            if piano_config.load_sound:
+                self.current_send_midi_queue.put(
+                    ['set_position', self.current_position])
         else:
             current_sf2_player = current_piano_window.current_sf2_player
             current_ticks = int(
