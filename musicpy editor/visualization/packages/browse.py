@@ -53,10 +53,6 @@ class setup:
                                all_tracks.start_times[i])
                               for i in range(len(all_tracks.tracks))]
 
-            pitch_bends = mp.concat(
-                [i[0].split(mp.pitch_bend, get_time=True) for i in all_tracks])
-            for each in all_tracks:
-                each[0].clear_pitch_bend('all')
             start_time_ls = [j[2] for j in all_tracks]
             first_track_ind = start_time_ls.index(min(start_time_ls))
             all_tracks.insert(0, all_tracks.pop(first_track_ind))
@@ -97,7 +93,6 @@ class setup:
                 if i > 0:
                     all_track_notes &= (current_track,
                                         current[2] - first_track_start_time)
-            all_track_notes += pitch_bends
             if self.set_bpm is not None:
                 if float(self.set_bpm) == round(tempo, 3):
                     self.set_bpm = None
