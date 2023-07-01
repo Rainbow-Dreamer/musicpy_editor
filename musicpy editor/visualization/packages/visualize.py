@@ -1718,7 +1718,8 @@ class piano_engine:
                 current_piano_window.piano_keys[
                     each.num].color = current_piano_window.initial_colors[
                         each.num]
-                self.current_hit_key_notes.remove(each.current_note)
+                if each.current_note in self.current_hit_key_notes:
+                    self.current_hit_key_notes.remove(each.current_note)
                 changed = True
             if each.y >= current_piano_window.height:
                 each.batch = None
@@ -1754,7 +1755,8 @@ class piano_engine:
                     each.num].color = current_piano_window.initial_colors[
                         each.num]
                 del self.plays[i]
-                self.current_hit_key_notes.remove(each.current_note)
+                if each.current_note in self.current_hit_key_notes:
+                    self.current_hit_key_notes.remove(each.current_note)
                 changed = True
                 continue
             i += 1
