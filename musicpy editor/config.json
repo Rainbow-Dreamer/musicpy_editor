@@ -13,7 +13,8 @@
         "\"\""
     ],
     "font_type": "Consolas",
-    "font_size": 12,
+    "font_size": 9,
+    "editor_area_font_size": 12,
     "background_mode": "white",
     "syntax_highlight": {
         "red": [

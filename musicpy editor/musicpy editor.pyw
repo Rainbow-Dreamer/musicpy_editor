@@ -454,8 +454,11 @@ class Editor(QtWidgets.QMainWindow):
         }
         self.font_type = config_dict['font_type']
         self.font_size = config_dict['font_size']
+        self.editor_area_font_size = config_dict['editor_area_font_size']
         self.current_font = set_font(
             QtGui.QFont(self.font_type, self.font_size), self.dpi)
+        self.current_editor_area_font = set_font(
+            QtGui.QFont(self.font_type, self.editor_area_font_size), self.dpi)
         self.inputs_text = self.get_label(
             text=current_language_dict['Input musicpy codes here'])
         self.inputs_text.move(0, 80)
@@ -482,13 +485,13 @@ class Editor(QtWidgets.QMainWindow):
             pairing_symbols=config_dict['pairing_symbols'],
             custom_actions=self.custom_actions,
             size=(700, 200),
-            font=self.current_font,
+            font=self.current_editor_area_font,
             place=(0, 110))
         self.inputs.addActions(self.custom_actions)
         self.outputs_text = self.get_label(
             text=current_language_dict['Output'])
         self.outputs = QtWidgets.QPlainTextEdit(self)
-        self.outputs.setFont(self.current_font)
+        self.outputs.setFont(self.current_editor_area_font)
         self.outputs_text.move(0, 350)
         self.outputs.setFixedSize(700, 300)
         self.outputs.move(0, 380)
