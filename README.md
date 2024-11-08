@@ -6,7 +6,7 @@ Firstly,  make sure you have installed python (version >= 3.7) in your computer 
 
 Then run this line in cmd/terminal:
 ```
-pip install musicpy pyglet==1.5.11 yapf pyqt5
+pip install musicpy pyglet==1.5.11 yapf pyqt5==5.14.0
 ```
 
 **Note: In Linux, you need to install freepats in order to make the play function works, in Ubuntu, you can run `sudo apt-get install freepats`, and you also need to make sure the installed version of pygame is older than 2.0.3 on Linux in order to make the play function works, you can run `pip install pygame==2.0.2` to install pygame 2.0.2 or any version that is older than 2.0.3.**
