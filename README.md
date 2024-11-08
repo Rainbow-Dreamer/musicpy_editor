@@ -4,6 +4,10 @@ This is an easy-to-use musicpy editor and IDE.
 ## Installation
 Firstly,  make sure you have installed python (version >= 3.7) in your computer first.
 
+Secondly, download the PyQt5-sip wheel from this site: https://pypi.tuna.tsinghua.edu.cn/simple/pyqt5-sip/ (choose the version which matches your python version and system, for example, your python is 3.7.9 32bit, your system is Windows 10, then download "PyQt5_sip-12.12.2-cp37-cp37m-win32.whl")
+
+Thirdly, put the wheel file in a location, then use `pip install PyQt5_sip-12.12.2-cp37-cp37m-win32.whl` to install PyQt5-sip.
+
 Then run this line in cmd/terminal:
 ```
 pip install musicpy pyglet==1.5.11 yapf PyQt5==5.15.2 -i https://pypi.tuna.tsinghua.edu.cn/simple
