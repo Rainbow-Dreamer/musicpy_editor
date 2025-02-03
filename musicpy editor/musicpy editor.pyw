@@ -8,7 +8,7 @@ from multiprocessing import Process
 abs_path = os.path.dirname(os.path.abspath(__file__))
 os.chdir(abs_path)
 try:
-    from PyQt5 import QtGui, QtWidgets, QtCore
+    from PyQt5 import QtGui, QtWidgets, QtCore, Qt
     from yapf.yapflib.yapf_api import FormatCode
     import musicpy
     from visualization.packages.change_settings import config_window
@@ -21,7 +21,7 @@ except ImportError:
     current_messagebox = QtWidgets.QMessageBox()
     current_messagebox.setIcon(QtWidgets.QMessageBox.Warning)
     current_messagebox.setText(
-        'Not all required python packages are installed.\nPlease run\npip install musicpy pyglet==1.5.11 yapf pyqt5\nin the terminal to install the required packages for this editor.'
+        'Not all required python packages are installed.\nPlease follow the steps in the following link to install the required packages for this editor:\nhttps://github.com/Rainbow-Dreamer/musicpy_editor#installation'
     )
     current_messagebox.setWindowTitle('Warning')
     current_messagebox.show()
@@ -216,8 +216,8 @@ class CustomTextEdit(QtWidgets.QPlainTextEdit):
                                        | QtCore.Qt.ShiftModifier)
         if self._completer is None or (ctrlOrShift and not current_text):
             return
-        hasModifier = (e.modifiers() !=
-                       QtCore.Qt.NoModifier) and not ctrlOrShift
+        hasModifier = (e.modifiers()
+                       != QtCore.Qt.NoModifier) and not ctrlOrShift
         completionPrefix = self.textUnderCursor()
         self.completion_prefix = completionPrefix
         if not isShortcut and (hasModifier or len(current_text) == 0
