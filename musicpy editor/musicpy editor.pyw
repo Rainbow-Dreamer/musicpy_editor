@@ -20,6 +20,7 @@ except ImportError:
     app = QtWidgets.QApplication(sys.argv)
     current_messagebox = QtWidgets.QMessageBox()
     current_messagebox.setIcon(QtWidgets.QMessageBox.Warning)
+    current_messagebox.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
     current_messagebox.setText(
         'Not all required python packages are installed.\nPlease follow the steps in the following link to install the required packages for this editor:\nhttps://github.com/Rainbow-Dreamer/musicpy_editor#installation'
     )
